@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bar-bg: rgba(245, 245, 247, 0.94);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow: hidden;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar, body::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+  MapLibre attribution / logo / compass — stripped for HMI.
+*/
+.mapboxgl-ctrl-attrib-inner,
+.mapbox-logo,
+.mapboxgl-ctrl-logo,
+.mapbox-improve-map,
+.mapboxgl-ctrl-compass {
+  display: none !important;
+}
+
+/* Prevent flash when the canvas container resizes during CSS transitions.
+   Promoting to a dedicated GPU layer keeps the browser from briefly
+   painting the container background before compositing the canvas. */
+.mapboxgl-canvas-container {
+  transform: translateZ(0);
+  background: #1a1a1a !important;
+}
+.mapboxgl-canvas {
+  background: #1a1a1a !important;
+}
+
+@keyframes fadeTab {
+  from { opacity: 0; transform: translateX(8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
