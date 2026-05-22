@@ -251,7 +251,7 @@ function CustomThemeModal({
         onClick={onClose}
       />
       <div
-        className="relative rounded-2xl p-8 w-[480px] max-h-[80vh] overflow-y-auto shadow-2xl"
+        className="relative rounded-2xl p-8 w-[480px] max-h-[80vh] shadow-2xl"
         style={{ background: 'var(--mila-bg, #fff)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -519,7 +519,6 @@ const UNITS = ['km', 'mi'] as const;
 
 function NavigationTab() {
   const [voiceGuidance, setVoiceGuidance] = useState(true);
-  const [voiceVolume, setVoiceVolume] = useState(70);
   const [mapOrientation, setMapOrientation] = useState<(typeof ORIENTATIONS)[number]>('Heading up');
   const [avoidTolls, setAvoidTolls] = useState(true);
   const [avoidHighways, setAvoidHighways] = useState(false);
@@ -542,13 +541,6 @@ function NavigationTab() {
         <div className="space-y-1">
           <Toggle label="Voice guidance" value={voiceGuidance} onChange={setVoiceGuidance} />
           <Toggle label="Lower media while speaking" value={ducking} onChange={setDucking} />
-          <div className="flex items-center gap-4 my-5">
-            <span className="text-sm min-w-[80px]" style={{ color: 'var(--mila-textSecondary, #666)' }}>Volume</span>
-            <div className="flex-1">
-              <Slider value={voiceVolume} onChange={setVoiceVolume} vertical={false} />
-            </div>
-            <span className="text-sm w-10 text-right" style={{ color: 'var(--mila-text, #333)' }}>{voiceVolume}%</span>
-          </div>
         </div>
       </section>
 
@@ -670,7 +662,7 @@ export default function SettingsPanel() {
 
       {/* key={tab} restarts the fadeTab animation; tab components are now cheap
           to mount because all persisted state lives in the settings store. */}
-      <div key={tab} className="flex-1 py-8 px-10 overflow-y-auto animate-[fadeTab_0.25s_ease-out]">
+      <div key={tab} className="flex-1 py-8 px-10 animate-[fadeTab_0.25s_cubic-bezier(0.16,1,0.3,1)]">
         <ActiveTab />
       </div>
     </div>

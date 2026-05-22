@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { getSetting, subscribeSetting } from '@/lib/settings';
@@ -9,8 +9,6 @@ const USER_SOURCE = 'mila-user';
 const USER_LAYER = 'mila-user-dot';
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? '';
 
-// Mapbox 3.x exposes setConfigProperty on the standard style. Types aren't
-// in the public d.ts surface yet, so narrow it here instead of `as any`.
 type ConfigurableMap = mapboxgl.Map & {
   setConfigProperty(importId: string, configName: string, value: unknown): void;
 };
@@ -32,18 +30,16 @@ const LEGACY_LAYERS: Record<ConfigKey, string[]> = {
   mb3dBuildings: ['building-3d'],
 };
 
-export default function Map() {
+export default function Map({ rightPadding = 0 }: { rightPadding?: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const paddingRef = useRef(0);
 
+  // ─── Init / destroy ───────────────────────────────────────────
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-
-    if (!TOKEN) {
-      // Surface a real error early instead of silently failing inside mapbox-gl.
-      console.error('NEXT_PUBLIC_MAPBOX_TOKEN is not set');
-      return;
-    }
+    if (!TOKEN) { console.error('NEXT_PUBLIC_MAPBOX_TOKEN is not set'); return; }
     mapboxgl.accessToken = TOKEN;
 
     let currentStyle = getSetting('mapStyle');
@@ -51,13 +47,11 @@ export default function Map() {
       container,
       style: currentStyle + '?optimize=true',
       fadeDuration: 200,
-      // MapLibre's own ResizeObserver calls resize() without our canvas
-      // overlay, causing an unprotected WebGL clear. We handle every
-      // resize ourselves in the ResizeObserver below.
-      trackResize: false,
+      trackResize: true,
     });
+    mapRef.current = map;
 
-    // ─── User position (live) ───────────────────────────────────
+    // ─── User position ──────────────────────────────────────────
     let userLngLat: [number, number] | null = null;
     let geoWatchId: number | null = null;
     let didFitOnce = false;
@@ -87,54 +81,7 @@ export default function Map() {
       });
     };
 
-    // ─── Resize overlay ──────────────────────────────────────────
-    // map.resize() clears the WebGL buffer; the overlay snaps the canvas
-    // beforehand and covers the 1-frame gap. Used with CSS GPU layer
-    // promotion (translateZ) on the canvas container to prevent the
-    // container background from flashing during grid transitions.
-    let overlay: HTMLCanvasElement | null = null;
-    let overlayCtx: CanvasRenderingContext2D | null = null;
-
-    const getCanvas = (): HTMLCanvasElement | null =>
-      container.querySelector<HTMLCanvasElement>('canvas');
-
-    const showOverlay = (source: HTMLCanvasElement) => {
-      if (source.width === 0) return;
-      if (!overlay) {
-        overlay = document.createElement('canvas');
-        overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1';
-        overlayCtx = overlay.getContext('2d');
-      }
-      if (!overlayCtx) return;
-
-      const dpr = window.devicePixelRatio || 1;
-      const w = Math.round(container.clientWidth * dpr);
-      const h = Math.round(container.clientHeight * dpr);
-      if (overlay.width !== w) overlay.width = w;
-      if (overlay.height !== h) overlay.height = h;
-
-      overlayCtx.drawImage(source, 0, 0, source.width, source.height, 0, 0, w, h);
-      if (!overlay.parentNode) {
-        const host = container.querySelector('.mapboxgl-canvas-container') ?? container;
-        host.appendChild(overlay);
-      }
-    };
-
-    let resizeRaf = 0;
-    const ro = new ResizeObserver(() => {
-      if (resizeRaf) return;
-      resizeRaf = requestAnimationFrame(() => {
-        resizeRaf = 0;
-        const canvas = getCanvas();
-        if (!canvas || canvas.width === 0) return;
-        showOverlay(canvas);
-        map.resize();
-        map.once('render', () => overlay?.remove());
-      });
-    });
-    ro.observe(container);
-
-    // ─── Map config (label visibility, 3D buildings) ────────────
+    // ─── Map config ─────────────────────────────────────────────
     type ConfigSnapshot = Record<ConfigKey, boolean>;
     let lastConfig: ConfigSnapshot | null = null;
 
@@ -149,7 +96,6 @@ export default function Map() {
       const next = snapshotConfig();
       const isStandard = currentStyle.includes('standard');
       const cm = map as ConfigurableMap;
-
       for (const key of CONFIG_KEYS) {
         if (lastConfig?.[key] === next[key]) continue;
         if (isStandard) {
@@ -172,8 +118,11 @@ export default function Map() {
 
     map.once('style.load', () => {
       onStyleReady();
+      // Apply initial padding if panel is already open
+      if (paddingRef.current > 0) {
+        map.setPadding({ right: paddingRef.current });
+      }
       if (!('geolocation' in navigator)) return;
-      // Live position for a car HMI — getCurrentPosition fires only once.
       geoWatchId = navigator.geolocation.watchPosition(
         (pos) => {
           userLngLat = [pos.coords.longitude, pos.coords.latitude];
@@ -202,13 +151,34 @@ export default function Map() {
     return () => {
       unsubStyle();
       for (const u of unsubs) u();
-      if (resizeRaf) cancelAnimationFrame(resizeRaf);
       if (geoWatchId !== null) navigator.geolocation.clearWatch(geoWatchId);
-      ro.disconnect();
-      overlay?.remove();
       map.remove();
+      mapRef.current = null;
     };
   }, []);
+
+  // ─── Smooth padding transition ────────────────────────────────
+  const prevPadding = useRef(rightPadding);
+  useEffect(() => {
+    paddingRef.current = rightPadding;
+    const map = mapRef.current;
+    if (!map || !map.loaded()) return;
+
+    const prev = prevPadding.current;
+    prevPadding.current = rightPadding;
+    if (prev === rightPadding) return;
+
+    const duration = rightPadding === 0 || prev === 0 ? 300 : 0;
+    if (duration > 0) {
+      map.easeTo({
+        padding: { right: rightPadding, top: 0, bottom: 0, left: 0 },
+        duration,
+        easing: (t: number) => 1 - Math.pow(1 - t, 3),
+      });
+    } else {
+      map.setPadding({ right: rightPadding });
+    }
+  }, [rightPadding]);
 
   return (
     <div className="w-full h-full relative">

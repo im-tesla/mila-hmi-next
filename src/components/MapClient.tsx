@@ -4,6 +4,6 @@ import dynamic from "next/dynamic";
 
 const Map = dynamic(() => import("@/components/Map"), { ssr: false });
 
-export default function MapClient() {
-  return <Map />;
+export default function MapClient({ rightPadding }: { rightPadding?: number }) {
+  return <Map rightPadding={rightPadding} />;
 }

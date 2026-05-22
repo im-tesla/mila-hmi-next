@@ -124,7 +124,6 @@ function HomeInner() {
   const basePanelWidth = PANEL_WIDTHS[panelSize];
 
   const displayedService: Service | null = fullscreen ?? active;
-  const open = displayedService !== null;
 
   // visibleContent decides which iframe/settings panel is painted. Set
   // immediately on open (so content appears as the panel slides in) and
@@ -132,10 +131,6 @@ function HomeInner() {
   // the iframe vanishes before the slide-out animation is visible.
   const [visibleContent, setVisibleContent] = useState<Service | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-
-  const onPanelTransitionEnd = useCallback(() => {
-    if (!displayedService) setVisibleContent(null);
-  }, [displayedService]);
 
   // Send a real pause command where the embedded service supports it.
   const pauseService = useCallback((svc: Exclude<Service, 'settings'>) => {
@@ -293,11 +288,15 @@ function HomeInner() {
     return () => ro.disconnect();
   }, []);
 
-  const panelWidth: number = open || fullscreen
+  const panelWidth = displayedService
     ? (fullscreen ? containerW : basePanelWidth)
     : 0;
-
   const contentWidth = fullscreen ? containerW : basePanelWidth;
+  const panelOpen = panelWidth > 0;
+
+  const onPanelTransitionEnd = useCallback(() => {
+    if (!displayedService && !switchTimer.current) setVisibleContent(null);
+  }, [displayedService]);
 
   // ─── Render ───────────────────────────────────────────────────
 
@@ -305,22 +304,43 @@ function HomeInner() {
     <main className="w-screen h-screen flex flex-col overflow-hidden select-none">
       <div
         ref={rowRef}
-        className="flex-1 min-h-0 grid"
-        style={{
-          gridTemplateColumns: `1fr ${panelWidth}px`,
-          transition: 'grid-template-columns var(--anim-duration, 0.3s) ease-in-out',
-          background: '#1a1a1a',
-        }}
-        onTransitionEnd={onPanelTransitionEnd}
+        className="flex-1 min-h-0 relative"
+        style={{ background: '#1a1a1a' }}
       >
-        <div className="relative" style={{ background: '#1a1a1a' }}>
-          <MapClient />
+        {/* Map — always fills the entire container. The clip-path
+            smoothly clips from the right to make room for the panel.
+            The WebGL canvas never resizes — no buffer clears, no black
+            frames. The rightPadding prop tells Map to ease the viewport
+            content left so the car stays centered in the visible area. */}
+        <div
+          className="absolute inset-0"
+          style={{
+            clipPath: panelOpen
+              ? `inset(0 ${panelWidth}px 0 0)`
+              : 'inset(0 0 0 0)',
+            transition: 'clip-path var(--anim-duration, 0.3s) cubic-bezier(0.16, 1, 0.3, 1)',
+            willChange: 'clip-path',
+          }}
+        >
+          <MapClient rightPadding={panelWidth} />
         </div>
 
+        {/* Panel — fills the space revealed by clipping. Slides in/out
+            with GPU-composited transform. */}
         <div
           ref={panelRef}
-          className="overflow-hidden relative"
-          style={{ background: 'var(--mila-surface, #f5f5f7)' }}
+          className="absolute top-0 right-0 h-full overflow-hidden"
+          style={{
+            width: contentWidth,
+            background: 'var(--mila-surface, #f5f5f7)',
+            transform: panelOpen ? 'translateX(0)' : 'translateX(100%)',
+            transition: panelOpen
+              ? 'transform var(--anim-duration, 0.3s) cubic-bezier(0.16, 1, 0.3, 1)'
+              : `transform var(--anim-duration, 0.3s) cubic-bezier(0.16, 1, 0.3, 1), visibility 0s var(--anim-duration, 0.3s)`,
+            visibility: panelOpen ? 'visible' : 'hidden',
+            willChange: 'transform',
+          }}
+          onTransitionEnd={onPanelTransitionEnd}
           onTouchStart={(e) => {
             const t = e.touches[0];
             swipeRef.current = { x: t.clientX, edge: t.clientX - e.currentTarget.getBoundingClientRect().left < 40 };
@@ -354,7 +374,7 @@ function HomeInner() {
                   width: contentWidth,
                   opacity: visible ? 1 : 0,
                   pointerEvents: visible ? 'auto' : 'none',
-                  transition: 'opacity var(--anim-duration, 0.3s) ease-in-out',
+                  transition: 'opacity var(--anim-duration, 0.3s) cubic-bezier(0.16, 1, 0.3, 1)',
                 }}
                 allow="fullscreen; encrypted-media; autoplay"
                 title={svc}
@@ -369,7 +389,7 @@ function HomeInner() {
               width: contentWidth,
               opacity: visibleContent === 'settings' ? 1 : 0,
               pointerEvents: visibleContent === 'settings' ? 'auto' : 'none',
-              transition: 'opacity var(--anim-duration, 0.3s) ease-in-out',
+              transition: 'opacity var(--anim-duration, 0.3s) cubic-bezier(0.16, 1, 0.3, 1)',
             }}
           >
             <SettingsPanel />
@@ -400,15 +420,15 @@ function HomeInner() {
             style={{ bottom: 'calc(100% + 10px)', willChange: 'transform, opacity' }}
           >
             <div
-              className="py-4 px-2 rounded-3xl"
+              className="py-4 px-3 rounded-3xl"
               style={{
                 background: 'var(--mila-surface, #fff)',
                 boxShadow: '0 8px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)',
                 border: '1px solid var(--mila-border, #e5e5e5)',
-                width: 52,
+                width: 44,
               }}
             >
-              <Slider value={volume} onChange={setVolume} className="w-full h-52" />
+              <Slider value={volume} onChange={setVolume} className="w-full h-40" />
             </div>
           </div>
         </div>

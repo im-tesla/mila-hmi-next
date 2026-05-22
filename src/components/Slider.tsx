@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 
 export default function Slider({
   value,
@@ -15,15 +15,28 @@ export default function Slider({
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const fillRef = useRef<HTMLDivElement>(null);
+  const grabRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
   const pctRef = useRef(value);
   const rafRef = useRef(0);
   const pendingPctRef = useRef<number | null>(null);
+  const [active, setActive] = useState(false);
 
-  const apply = useCallback((pct: number) => {
+  const apply = useCallback((pct: number, instant?: boolean) => {
     const fill = fillRef.current;
-    if (!fill) return;
-    fill.style[vertical ? 'height' : 'width'] = `${pct}%`;
+    const grab = grabRef.current;
+    if (!fill || !grab) return;
+
+    fill.style.transition = instant ? 'none' : '';
+    grab.style.transition = instant ? 'none' : '';
+
+    if (vertical) {
+      fill.style.height = `${pct}%`;
+      grab.style.bottom = `${pct}%`;
+    } else {
+      fill.style.width = `${pct}%`;
+      grab.style.left = `${pct}%`;
+    }
   }, [vertical]);
 
   const getPercent = useCallback((coord: number): number => {
@@ -42,7 +55,7 @@ export default function Slider({
     if (pct === null) return;
     pendingPctRef.current = null;
     pctRef.current = pct;
-    apply(pct);
+    apply(pct, true);
   }, [apply]);
 
   useEffect(() => {
@@ -55,12 +68,18 @@ export default function Slider({
     const onUp = () => {
       if (!draggingRef.current) return;
       draggingRef.current = false;
+      setActive(false);
       if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = 0; }
       if (pendingPctRef.current !== null) {
         pctRef.current = pendingPctRef.current;
-        apply(pendingPctRef.current);
+        apply(pendingPctRef.current, true);
         pendingPctRef.current = null;
       }
+      // Restore CSS transitions for the non-dragging state
+      const fill = fillRef.current;
+      const grab = grabRef.current;
+      if (fill) fill.style.transition = '';
+      if (grab) grab.style.transition = '';
       onChange(pctRef.current);
     };
     window.addEventListener('pointermove', onMove);
@@ -72,38 +91,77 @@ export default function Slider({
       window.removeEventListener('pointercancel', onUp);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [getPercent, apply, onChange, vertical, flushPending]);
+  }, [getPercent, onChange, vertical, apply, flushPending]);
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     draggingRef.current = true;
+    setActive(true);
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     const pct = getPercent(vertical ? e.clientY : e.clientX);
     pctRef.current = pct;
-    apply(pct);
-  }, [getPercent, apply, vertical]);
+    apply(pct, true);
+    onChange(pct);
+  }, [getPercent, onChange, vertical, apply]);
 
+  // Sync fill/grab when value changes from outside (e.g. reset)
   useEffect(() => {
     if (draggingRef.current) return;
     pctRef.current = value;
-    apply(value);
+    apply(value, true);
   }, [value, apply]);
+
+  // Center the track and grab handle
+  const trackCenter = vertical
+    ? { left: '50%', transform: 'translateX(-50%)', width: 4 }
+    : { top: '50%', transform: 'translateY(-50%)', height: 4 };
+  const fillBase = vertical
+    ? { left: '50%', transform: 'translateX(-50%)', width: 4, bottom: 0, height: `${value}%` }
+    : { top: '50%', transform: 'translateY(-50%)', height: 4, left: 0, width: `${value}%` };
+  const grabBase = vertical
+    ? { left: '50%', transform: 'translate(-50%, 50%)', bottom: `${value}%` }
+    : { top: '50%', transform: 'translate(-50%, -50%)', left: `${value}%` };
 
   return (
     <div
       ref={trackRef}
-      className={`relative rounded-full cursor-pointer touch-none select-none overflow-hidden ${
-        className ?? (vertical ? 'w-full h-36' : 'w-full h-5')
-      }`}
-      style={{ background: 'var(--mila-border, #e5e5e5)' }}
+      className={`relative cursor-pointer touch-none select-none ${className ?? (vertical ? 'w-8 h-36' : 'w-full h-8')}`}
       onPointerDown={onPointerDown}
+      role="slider"
+      aria-valuenow={value}
+      aria-valuemin={0}
+      aria-valuemax={100}
     >
+      {/* Track background */}
+      <div
+        className="absolute top-0 bottom-0 rounded-full"
+        style={{
+          background: 'var(--mila-border, #e5e5e5)',
+          ...trackCenter,
+        }}
+      />
+
+      {/* Active fill — positioned via ref during drag, CSS transition otherwise */}
       <div
         ref={fillRef}
-        className={`absolute ${vertical ? 'bottom-0 left-0 right-0' : 'top-0 left-0 bottom-0'}`}
+        className="absolute rounded-full"
         style={{
-          [vertical ? 'height' : 'width']: `${value}%`,
           background: 'var(--mila-accent, #0d9488)',
-          borderRadius: 'inherit',
+          transition: 'width 0.15s ease-out, height 0.15s ease-out',
+          ...fillBase,
+        }}
+      />
+
+      {/* Circular grab — positioned via ref during drag, CSS transition otherwise */}
+      <div
+        ref={grabRef}
+        className="absolute rounded-full"
+        style={{
+          width: active ? 24 : 20,
+          height: active ? 24 : 20,
+          background: '#fff',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.16), 0 0 0 0.5px rgba(0,0,0,0.06)',
+          transition: 'width 0.15s cubic-bezier(0.16, 1, 0.3, 1), height 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
+          ...grabBase,
         }}
       />
     </div>
