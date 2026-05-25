@@ -44,17 +44,25 @@ chrome.cookies.set({
   sameSite: 'lax',
 });
 
-// -- Netflix SameSite cookie fix --
-// Netflix auth cookies use SameSite=Lax which blocks them in cross-site iframes.
-// Convert all netflix.com cookies to SameSite=None; Secure so the iframe stays logged in.
+// -- SameSite cookie fix for iframed sites --
+// Cookies with SameSite=Lax are blocked in cross-site iframes.
+// Convert to SameSite=None; Secure so auth and sessions survive.
 
-function fixNetflixCookies() {
-  chrome.cookies.getAll({ domain: '.netflix.com' }, (cookies) => {
+function shouldSkipCookie(name) {
+  // __Host- cookies must be host-only (no Domain), path=/, Secure.
+  // __Secure- cookies must be Secure (can have Domain).
+  // We can't safely rewrite these.
+  return name.startsWith('__Host-') || name.startsWith('__Secure-');
+}
+
+function fixSameSiteCookies(domain, baseUrl) {
+  chrome.cookies.getAll({ domain }, (cookies) => {
     for (const c of cookies) {
       if (c.sameSite === 'no_restriction' && c.secure) continue;
+      if (shouldSkipCookie(c.name)) continue;
       try {
         chrome.cookies.set({
-          url: `https://www.netflix.com${c.path}`,
+          url: `${baseUrl}${c.path}`,
           name: c.name,
           value: c.value,
           domain: c.domain,
@@ -70,17 +78,23 @@ function fixNetflixCookies() {
   });
 }
 
-// Run on startup
-fixNetflixCookies();
+// Fix Netflix cookies on startup
+fixSameSiteCookies('.netflix.com', 'https://www.netflix.com');
 
 // Auto-fix any new/changed Netflix cookies
+const COOKIE_DOMAINS = [
+  { suffix: 'netflix.com', base: 'https://www.netflix.com' },
+];
+
 chrome.cookies.onChanged.addListener(({ cookie, removed }) => {
   if (removed) return;
-  if (!cookie.domain.includes('netflix.com')) return;
   if (cookie.sameSite === 'no_restriction' && cookie.secure) return;
+  if (shouldSkipCookie(cookie.name)) return;
+  const match = COOKIE_DOMAINS.find((d) => cookie.domain.includes(d.suffix));
+  if (!match) return;
   try {
     chrome.cookies.set({
-      url: `https://www.netflix.com${cookie.path}`,
+      url: `${match.base}${cookie.path}`,
       name: cookie.name,
       value: cookie.value,
       domain: cookie.domain,

@@ -6,6 +6,8 @@ import SettingsPanel from '@/components/SettingsPanel';
 import Slider from '@/components/Slider';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { useSetting, PANEL_WIDTHS } from '@/lib/settings';
+import { useCustomApps, getFaviconUrl, getFaviconFallback, normalizeUrl, resolveFaviconUrl, extractFaviconColor, addCustomApp, removeCustomApp } from '@/lib/customApps';
+import type { CustomApp } from '@/lib/customApps';
 
 // ─── Service definitions ────────────────────────────────────────
 
@@ -32,7 +34,7 @@ const SERVICE_COLOR: Record<Service, string> = {
   settings: '#007aff',
 };
 
-const SERVICE_ORDER = ['spotify', 'youtube', 'netflix'] as const;
+const APP_LIBRARY_APPS = ['youtube'] as const;
 
 // ─── Icons (hoisted, no per-render allocation) ───────────────────
 
@@ -83,12 +85,25 @@ const VolumeIcon = ({ size = 24, level = 100 }: { size?: number; level?: number 
 
 const iconMap = { spotify: SpotifyIcon, youtube: YouTubeIcon, netflix: NetflixIcon } as const;
 
+const GridIcon = ({ size = 28 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <circle cx="5" cy="5" r="2.5" />
+    <circle cx="12" cy="5" r="2.5" />
+    <circle cx="19" cy="5" r="2.5" />
+    <circle cx="5" cy="12" r="2.5" />
+    <circle cx="12" cy="12" r="2.5" />
+    <circle cx="19" cy="12" r="2.5" />
+    <circle cx="5" cy="19" r="2.5" />
+    <circle cx="12" cy="19" r="2.5" />
+    <circle cx="19" cy="19" r="2.5" />
+  </svg>
+);
+
 // ─── Page ────────────────────────────────────────────────────────
 
-const HOLD_MS = 500;
-const HOLD_DISMISS_MS = 4000;
-const FULLSCREEN_DELAY_MS = 300;
 const SPLASH_MS = 2500;
+const HOLD_MS = 350;
+const HOLD_DISMISS_MS = 4000;
 
 export default function Home() {
   return (
@@ -99,41 +114,67 @@ export default function Home() {
 }
 
 function HomeInner() {
-  const [active, setActive] = useState<Service | null>(null);
-  const [fullscreen, setFullscreen] = useState<Service | null>(null);
-  const [holdService, setHoldService] = useState<Service | null>(null);
+  const [active, setActive] = useState<string | null>(null);
+  const [fullscreen, setFullscreen] = useState<string | null>(null);
   const [volume, setVolume] = useState(100);
   const [showVolume, setShowVolume] = useState(false);
   const [extReady, setExtReady] = useState(true);
   const [splashDone, setSplashDone] = useState(false);
   const [servicesDisabled, setServicesDisabled] = useState(false);
   const [showRestore, setShowRestore] = useState(false);
+  const [holdService, setHoldService] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showAppLibrary, setShowAppLibrary] = useState(false);
+  const [newAppName, setNewAppName] = useState('');
+  const [newAppUrl, setNewAppUrl] = useState('');
+  const [addError, setAddError] = useState('');
   // All iframes mount at boot (during the splash screen) so they're warm
   // and ready by the time the user taps a service. Inactive iframes are
   // hidden via the `hidden` attribute for browser throttling.
 
   const switchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdRef = useRef<HTMLDivElement>(null);
   const swipeRef = useRef<{ x: number; edge: boolean } | null>(null);
   const volumeRef = useRef<HTMLDivElement>(null);
   const volumeBtnRef = useRef<HTMLButtonElement>(null);
-  const holdRef = useRef<HTMLDivElement>(null);
-  const iframeRefs = useRef<Partial<Record<Exclude<Service, 'settings'>, HTMLIFrameElement>>>({});
+  const iframeRefs = useRef<Partial<Record<string, HTMLIFrameElement>>>({});
 
   const [panelSize] = useSetting('panelSize');
   const basePanelWidth = PANEL_WIDTHS[panelSize];
 
-  const displayedService: Service | null = fullscreen ?? active;
+  const displayedService: string | null = fullscreen ?? active;
+
+  const customApps = useCustomApps();
+
+  function isBuiltInService(id: string): id is Service {
+    return id === 'spotify' || id === 'youtube' || id === 'netflix' || id === 'settings';
+  }
+
+  function getServiceColor(id: string): string {
+    if (isBuiltInService(id)) return SERVICE_COLOR[id];
+    return 'var(--mila-accent, #818cf8)';
+  }
+
+  function getServiceSrc(id: string): string {
+    if (isBuiltInService(id) && id !== 'settings') return SERVICE_SRC[id];
+    return customApps.find((a) => a.id === id)?.url ?? '';
+  }
+
+  function getServiceName(id: string): string {
+    if (isBuiltInService(id)) return id.charAt(0).toUpperCase() + id.slice(1);
+    return customApps.find((a) => a.id === id)?.name ?? id;
+  }
 
   // visibleContent decides which iframe/settings panel is painted. Set
   // immediately on open (so content appears as the panel slides in) and
   // only cleared after the close width transition finishes — otherwise
   // the iframe vanishes before the slide-out animation is visible.
-  const [visibleContent, setVisibleContent] = useState<Service | null>(null);
+  const [visibleContent, setVisibleContent] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Send a real pause command where the embedded service supports it.
-  const pauseService = useCallback((svc: Exclude<Service, 'settings'>) => {
+  const pauseService = useCallback((svc: string) => {
     const el = iframeRefs.current[svc];
     if (!el?.contentWindow) return;
     if (svc === 'youtube') {
@@ -144,15 +185,14 @@ function HomeInner() {
         );
       } catch {}
     }
-    // Spotify / Netflix have no public postMessage API. The browser pauses
-    // video on hidden iframes; audio (Spotify) intentionally keeps playing
-    // so background music continues during navigation.
   }, []);
 
   // Open / close / switch service.
-  const handleClick = useCallback((service: Service) => {
+  const handleClick = useCallback((service: string) => {
     if (switchTimer.current) { clearTimeout(switchTimer.current); switchTimer.current = null; }
-
+    if (holdTimer.current) { clearTimeout(holdTimer.current); holdTimer.current = null; }
+    setHoldService(null);
+    setShowAppLibrary(false);
 
     const outgoing = fullscreen ?? active;
     if (outgoing && outgoing !== 'settings') pauseService(outgoing);
@@ -166,7 +206,6 @@ function HomeInner() {
       return;
     }
     if (active === service) {
-      // closing — visibleContent cleared by onPanelTransitionEnd
       setActive(null);
     } else {
       setActive(service);
@@ -174,33 +213,29 @@ function HomeInner() {
     }
   }, [active, fullscreen, pauseService]);
 
-  const handlePointerDown = useCallback((service: Service) => {
-    if (service === 'settings') return;
+  const handlePointerDown = useCallback((svc: string) => {
+    if (holdTimer.current) clearTimeout(holdTimer.current);
     holdTimer.current = setTimeout(() => {
       holdTimer.current = null;
-      setHoldService(service);
+      setHoldService(svc);
     }, HOLD_MS);
   }, []);
 
-  const handlePointerUp = useCallback((service: Service) => {
+  const handlePointerUp = useCallback((svc: string) => {
     if (!holdTimer.current) return;
     clearTimeout(holdTimer.current);
     holdTimer.current = null;
-    handleClick(service);
+    handleClick(svc);
   }, [handleClick]);
 
-  const handleFullscreen = useCallback((service: Service) => {
-    setVisibleContent(service);
-    if (fullscreen && fullscreen !== 'settings') pauseService(fullscreen);
-    if (active && active !== 'settings') pauseService(active);
+  const handleFullscreen = useCallback((service: string) => {
+    if (switchTimer.current) { clearTimeout(switchTimer.current); switchTimer.current = null; }
+    if (holdTimer.current) { clearTimeout(holdTimer.current); holdTimer.current = null; }
     setHoldService(null);
-    setActive(null);
-    if (switchTimer.current) clearTimeout(switchTimer.current);
-    switchTimer.current = setTimeout(() => {
-      switchTimer.current = null;
-      setFullscreen(service);
-    }, FULLSCREEN_DELAY_MS);
-  }, [active, fullscreen, pauseService]);
+    setVisibleContent(service);
+    setShowVolume(false);
+    setFullscreen(service);
+  }, []);
 
   // ─── Effects ──────────────────────────────────────────────────
 
@@ -238,6 +273,22 @@ function HomeInner() {
     return () => clearInterval(id);
   }, [servicesDisabled]);
 
+  // Dismiss app library popup on outside click.
+  const appLibraryRef = useRef<HTMLDivElement>(null);
+  const appLibraryBtnRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!showAppLibrary) return;
+    const onDown = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (appLibraryBtnRef.current?.contains(target)) return;
+      if (appLibraryRef.current && !appLibraryRef.current.contains(target)) {
+        setShowAppLibrary(false);
+      }
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [showAppLibrary]);
+
   // Dismiss volume popup on outside click.
   useEffect(() => {
     if (!showVolume) return;
@@ -251,7 +302,14 @@ function HomeInner() {
     return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [showVolume]);
 
-  // Auto-dismiss fullscreen affordance after timeout, or on outside click.
+  // Prevent native context-menu in kiosk — long-press should never reload.
+  useEffect(() => {
+    const prevent = (e: Event) => e.preventDefault();
+    document.addEventListener('contextmenu', prevent);
+    return () => document.removeEventListener('contextmenu', prevent);
+  }, []);
+
+  // Auto-dismiss fullscreen popup after timeout or outside tap.
   useEffect(() => {
     if (!holdService) return;
     const id = setTimeout(() => setHoldService(null), HOLD_DISMISS_MS);
@@ -261,10 +319,7 @@ function HomeInner() {
       }
     };
     document.addEventListener('pointerdown', onDown);
-    return () => {
-      clearTimeout(id);
-      document.removeEventListener('pointerdown', onDown);
-    };
+    return () => { clearTimeout(id); document.removeEventListener('pointerdown', onDown); };
   }, [holdService]);
 
   // Cleanup any pending timers on unmount.
@@ -276,10 +331,7 @@ function HomeInner() {
   // Panel width: measure the container so fullscreen→normal transitions
   // stay in pixel units (avoid px↔% mismatch that kills the transition).
   const rowRef = useRef<HTMLDivElement>(null);
-  // Seed with window width so fullscreen→normal transition has a starting value.
-  const [containerW, setContainerW] = useState(
-    typeof window !== 'undefined' ? window.innerWidth : 0,
-  );
+  const [containerW, setContainerW] = useState(0);
   useEffect(() => {
     const el = rowRef.current;
     if (!el) return;
@@ -297,6 +349,11 @@ function HomeInner() {
   const onPanelTransitionEnd = useCallback(() => {
     if (!displayedService && !switchTimer.current) setVisibleContent(null);
   }, [displayedService]);
+
+  const prevVisibleRef = useRef<string | null>(null);
+  useEffect(() => {
+    prevVisibleRef.current = visibleContent;
+  }, [visibleContent]);
 
   // ─── Render ───────────────────────────────────────────────────
 
@@ -325,20 +382,23 @@ function HomeInner() {
           <MapClient rightPadding={panelWidth} />
         </div>
 
-        {/* Panel — fills the space revealed by clipping. Slides in/out
-            with GPU-composited transform. */}
+
+        {/* Panel — always containerW wide; clip-path limits the visible
+            strip (GPU-composited). translateX slides the panel by exactly
+            contentWidth so the slide distance matches the visible area. */}
         <div
           ref={panelRef}
           className="absolute top-0 right-0 h-full overflow-hidden"
           style={{
-            width: contentWidth,
+            width: containerW,
             background: 'var(--mila-surface, #f5f5f7)',
-            transform: panelOpen ? 'translateX(0)' : 'translateX(100%)',
+            clipPath: `inset(0 0 0 ${containerW - contentWidth}px)`,
+            transform: panelOpen ? 'translateX(0)' : `translateX(${contentWidth}px)`,
             transition: panelOpen
-              ? 'transform var(--anim-duration, 0.3s) cubic-bezier(0.16, 1, 0.3, 1)'
+              ? 'transform var(--anim-duration, 0.3s) cubic-bezier(0.16, 1, 0.3, 1), clip-path var(--anim-duration, 0.3s) cubic-bezier(0.16, 1, 0.3, 1)'
               : `transform var(--anim-duration, 0.3s) cubic-bezier(0.16, 1, 0.3, 1), visibility 0s var(--anim-duration, 0.3s)`,
             visibility: panelOpen ? 'visible' : 'hidden',
-            willChange: 'transform',
+            willChange: 'transform, clip-path',
           }}
           onTransitionEnd={onPanelTransitionEnd}
           onTouchStart={(e) => {
@@ -357,9 +417,13 @@ function HomeInner() {
             swipeRef.current = null;
           }}
         >
+          {/* iframes are right-aligned and animate width in sync with
+              the panel's clip-path — same easing, same duration. The right
+              edge is pinned; only the left edge moves. */}
           {!servicesDisabled && IFRAME_SERVICES.map((svc) => {
             const visible = visibleContent === svc;
             const throttled = visibleContent === null;
+            const slideOut = prevVisibleRef.current === svc && !visible;
             return (
               <iframe
                 key={svc}
@@ -369,22 +433,58 @@ function HomeInner() {
                 }}
                 src={SERVICE_SRC[svc]}
                 hidden={throttled}
-                className="absolute top-0 left-0 h-full border-0"
+                className="absolute top-0 right-0 h-full border-0"
                 style={{
                   width: contentWidth,
                   opacity: visible ? 1 : 0,
                   pointerEvents: visible ? 'auto' : 'none',
-                  transition: 'opacity var(--anim-duration, 0.3s) cubic-bezier(0.16, 1, 0.3, 1)',
+                  transform: visible ? 'translateX(0)' : slideOut ? 'translateX(200px)' : 'translateX(200px)',
+                  transition: [
+                    'width var(--anim-duration, 0.3s) cubic-bezier(0.16, 1, 0.3, 1)',
+                    'opacity var(--anim-duration, 0.3s) cubic-bezier(0.16, 1, 0.3, 1)',
+                    'transform var(--anim-duration, 0.3s) cubic-bezier(0.16, 1, 0.3, 1)',
+                  ].join(', '),
                 }}
-                allow="fullscreen; encrypted-media; autoplay"
+                allow="fullscreen; encrypted-media; autoplay; microphone; camera; geolocation"
                 title={svc}
+              />
+            );
+          })}
+
+          {!servicesDisabled && customApps.map((app) => {
+            const visible = visibleContent === app.id;
+            const throttled = visibleContent === null;
+            const slideOut = prevVisibleRef.current === app.id && !visible;
+            return (
+              <iframe
+                key={app.id}
+                ref={(el) => {
+                  if (el) iframeRefs.current[app.id] = el;
+                  else delete iframeRefs.current[app.id];
+                }}
+                src={app.url}
+                hidden={throttled}
+                className="absolute top-0 right-0 h-full border-0"
+                style={{
+                  width: contentWidth,
+                  opacity: visible ? 1 : 0,
+                  pointerEvents: visible ? 'auto' : 'none',
+                  transform: visible ? 'translateX(0)' : slideOut ? 'translateX(200px)' : 'translateX(200px)',
+                  transition: [
+                    'width var(--anim-duration, 0.3s) cubic-bezier(0.16, 1, 0.3, 1)',
+                    'opacity var(--anim-duration, 0.3s) cubic-bezier(0.16, 1, 0.3, 1)',
+                    'transform var(--anim-duration, 0.3s) cubic-bezier(0.16, 1, 0.3, 1)',
+                  ].join(', '),
+                }}
+                allow="fullscreen; encrypted-media; autoplay; microphone; camera; geolocation"
+                title={app.name}
               />
             );
           })}
 
           <div
             hidden={visibleContent === null}
-            className="absolute top-0 left-0 h-full overflow-hidden"
+            className="absolute top-0 right-0 h-full overflow-hidden"
             style={{
               width: contentWidth,
               opacity: visibleContent === 'settings' ? 1 : 0,
@@ -433,20 +533,39 @@ function HomeInner() {
           </div>
         </div>
 
-        {!servicesDisabled && SERVICE_ORDER.map((svc) => {
+        {!servicesDisabled && (() => {
+          const svc = 'spotify' as const;
           const isActive = active === svc || fullscreen === svc;
+          const isHeld = holdService === svc;
           const Icon = iconMap[svc];
           return (
-            <div key={svc} className="relative" ref={holdService === svc ? holdRef : undefined}>
+            <div key={svc} className="relative" ref={isHeld ? holdRef : undefined}>
+              {isHeld && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleFullscreen(svc); }}
+                  className="absolute -top-11 left-1/2 -translate-x-1/2 whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold shadow-lg touch-none select-none z-10"
+                  style={{
+                    background: 'var(--mila-surface, #fff)',
+                    color: 'var(--mila-text, #333)',
+                    border: '1px solid var(--mila-border, #e5e5e5)',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+                  }}
+                >
+                  Fullscreen
+                </button>
+              )}
               <button
                 type="button"
-                onPointerDown={() => handlePointerDown(svc)}
-                onPointerUp={() => handlePointerUp(svc)}
-                onPointerLeave={() => {
-                  if (holdTimer.current) { clearTimeout(holdTimer.current); holdTimer.current = null; }
-                }}
+                onPointerDown={(e) => { e.preventDefault(); handlePointerDown(svc); }}
+                onPointerUp={(e) => { e.preventDefault(); handlePointerUp(svc); }}
+                onPointerLeave={() => { if (holdTimer.current) { clearTimeout(holdTimer.current); holdTimer.current = null; } }}
+                onPointerCancel={() => { if (holdTimer.current) { clearTimeout(holdTimer.current); holdTimer.current = null; } }}
+                onContextMenu={(e) => e.preventDefault()}
+                onTouchStart={(e) => e.preventDefault()}
+                onTouchEnd={(e) => e.preventDefault()}
                 className="flex flex-col items-center justify-center border-0 bg-transparent cursor-pointer py-2 px-3 rounded-xl touch-none gap-1"
-                style={{ color: SERVICE_COLOR[svc] }}
+                style={{ color: SERVICE_COLOR[svc], WebkitTouchCallout: 'none' as any }}
               >
                 <Icon size={36} />
                 <div
@@ -458,24 +577,250 @@ function HomeInner() {
                   }}
                 />
               </button>
-              {holdService === svc && (
+            </div>
+          );
+        })()}
+
+        {!servicesDisabled && (
+          <button
+            type="button"
+            ref={appLibraryBtnRef}
+            onClick={() => setShowAppLibrary((v) => !v)}
+            className="flex flex-col items-center justify-center border-0 bg-transparent cursor-pointer py-2 px-3 rounded-xl touch-none gap-1"
+            style={{ color: 'var(--mila-textSecondary, #999)' }}
+          >
+            <GridIcon size={36} />
+            <div
+              className="w-1 h-1 rounded-full transition-all duration-[var(--anim-duration,0.2s)]"
+              style={{
+                background: 'var(--mila-accent, #818cf8)',
+                opacity: showAppLibrary ? 1 : 0,
+                transform: showAppLibrary ? 'scale(1) translateY(2px)' : 'scale(0)',
+              }}
+            />
+          </button>
+        )}
+
+        {!servicesDisabled && (() => {
+          const svc = 'netflix' as const;
+          const isActive = active === svc || fullscreen === svc;
+          const isHeld = holdService === svc;
+          const Icon = iconMap[svc];
+          return (
+            <div key={svc} className="relative" ref={isHeld ? holdRef : undefined}>
+              {isHeld && (
                 <button
                   type="button"
-                  onClick={() => handleFullscreen(svc)}
-                  className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap px-4 py-2 rounded-xl text-sm font-medium shadow-lg transition-colors"
-                  style={{ background: 'var(--mila-surface, rgba(255,255,255,0.95))', color: 'var(--mila-text, #333)' }}
+                  onClick={(e) => { e.stopPropagation(); handleFullscreen(svc); }}
+                  className="absolute -top-11 left-1/2 -translate-x-1/2 whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold shadow-lg touch-none select-none z-10"
+                  style={{
+                    background: 'var(--mila-surface, #fff)',
+                    color: 'var(--mila-text, #333)',
+                    border: '1px solid var(--mila-border, #e5e5e5)',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+                  }}
                 >
                   Fullscreen
                 </button>
               )}
+              <button
+                type="button"
+                onPointerDown={(e) => { e.preventDefault(); handlePointerDown(svc); }}
+                onPointerUp={(e) => { e.preventDefault(); handlePointerUp(svc); }}
+                onPointerLeave={() => { if (holdTimer.current) { clearTimeout(holdTimer.current); holdTimer.current = null; } }}
+                onPointerCancel={() => { if (holdTimer.current) { clearTimeout(holdTimer.current); holdTimer.current = null; } }}
+                onContextMenu={(e) => e.preventDefault()}
+                onTouchStart={(e) => e.preventDefault()}
+                onTouchEnd={(e) => e.preventDefault()}
+                className="flex flex-col items-center justify-center border-0 bg-transparent cursor-pointer py-2 px-3 rounded-xl touch-none gap-1"
+                style={{ color: SERVICE_COLOR[svc], WebkitTouchCallout: 'none' as any }}
+              >
+                <Icon size={36} />
+                <div
+                  className="w-1 h-1 rounded-full transition-all duration-[var(--anim-duration,0.2s)]"
+                  style={{
+                    background: SERVICE_COLOR[svc],
+                    opacity: isActive ? 1 : 0,
+                    transform: isActive ? 'scale(1) translateY(2px)' : 'scale(0)',
+                  }}
+                />
+              </button>
             </div>
           );
-        })}
+        })()}
+
+        <div
+            ref={appLibraryRef}
+            className="absolute left-1/2 -translate-x-1/2 z-30 rounded-2xl p-6"
+            style={{
+              bottom: 'calc(100% + 8px)',
+              width: 520,
+              background: 'var(--mila-surface, #f5f5f7)',
+              border: '1px solid var(--mila-border, #e5e5e5)',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.16), 0 4px 16px rgba(0,0,0,0.08)',
+              opacity: showAppLibrary ? 1 : 0,
+              transition: 'opacity 350ms cubic-bezier(0.16, 1, 0.3, 1)',
+              pointerEvents: showAppLibrary ? 'auto' : 'none',
+            }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold" style={{ color: 'var(--mila-text, #333)' }}>App Library</h3>
+              <button
+                type="button"
+                onClick={() => setShowAppLibrary(false)}
+                className="border-0 bg-transparent cursor-pointer p-1 rounded-lg"
+                style={{ color: 'var(--mila-textSecondary, #999)' }}
+              >
+                <svg width={24} height={24} viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.3 5.71a.996.996 0 00-1.41 0L12 10.59 7.11 5.7A.996.996 0 105.7 7.11L10.59 12 5.7 16.89a.996.996 0 101.41 1.41L12 13.41l4.89 4.89a.996.996 0 101.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-4">
+              {APP_LIBRARY_APPS.map((svc) => {
+                const isActive = active === svc || fullscreen === svc;
+                const isHeld = holdService === svc;
+                const Icon = iconMap[svc];
+                return (
+                  <div key={svc} className="relative" ref={isHeld ? holdRef : undefined}>
+                    {isHeld && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleFullscreen(svc); }}
+                        className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold shadow-lg touch-none select-none z-10"
+                        style={{
+                          background: 'var(--mila-surface, #fff)',
+                          color: 'var(--mila-text, #333)',
+                          border: '1px solid var(--mila-border, #e5e5e5)',
+                          boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+                        }}
+                      >
+                        Fullscreen
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onPointerDown={(e) => { e.preventDefault(); handlePointerDown(svc); }}
+                      onPointerUp={(e) => { e.preventDefault(); handlePointerUp(svc); }}
+                      onPointerLeave={() => { if (holdTimer.current) { clearTimeout(holdTimer.current); holdTimer.current = null; } }}
+                      onPointerCancel={() => { if (holdTimer.current) { clearTimeout(holdTimer.current); holdTimer.current = null; } }}
+                      onContextMenu={(e) => e.preventDefault()}
+                      onTouchStart={(e) => e.preventDefault()}
+                      onTouchEnd={(e) => e.preventDefault()}
+                      className="flex flex-col items-center gap-1.5 border-0 bg-transparent cursor-pointer p-3 rounded-xl touch-none w-20"
+                      style={{ color: SERVICE_COLOR[svc] as string, WebkitTouchCallout: 'none' as any }}
+                    >
+                      <Icon size={44} />
+                      <span className="text-xs font-medium truncate w-full text-center" style={{ color: 'var(--mila-textSecondary, #999)' }}>
+                        YouTube
+                      </span>
+                    </button>
+                  </div>
+                );
+              })}
+
+              {customApps.map((app) => {
+                const isActive = active === app.id || fullscreen === app.id;
+                const isHeld = holdService === app.id;
+                const color = app.color || getServiceColor(app.id);
+                return (
+                  <div key={app.id} className="relative" ref={isHeld ? holdRef : undefined}>
+                    {isHeld && (
+                      <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleFullscreen(app.id); }}
+                          className="whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold shadow-lg touch-none select-none"
+                          style={{
+                            background: 'var(--mila-surface, #fff)',
+                            color: 'var(--mila-text, #333)',
+                            border: '1px solid var(--mila-border, #e5e5e5)',
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+                          }}
+                        >
+                          Fullscreen
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeCustomApp(app.id);
+                            if (active === app.id) setActive(null);
+                            if (fullscreen === app.id) setFullscreen(null);
+                            if (visibleContent === app.id) setVisibleContent(null);
+                            if (holdService === app.id) setHoldService(null);
+                          }}
+                          className="whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold shadow-lg touch-none select-none"
+                          style={{ background: '#ef4444', color: '#fff', boxShadow: '0 4px 20px rgba(239,68,68,0.25)' }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onPointerDown={(e) => { e.preventDefault(); handlePointerDown(app.id); }}
+                      onPointerUp={(e) => { e.preventDefault(); handlePointerUp(app.id); }}
+                      onPointerLeave={() => { if (holdTimer.current) { clearTimeout(holdTimer.current); holdTimer.current = null; } }}
+                      onPointerCancel={() => { if (holdTimer.current) { clearTimeout(holdTimer.current); holdTimer.current = null; } }}
+                      onContextMenu={(e) => e.preventDefault()}
+                      onTouchStart={(e) => e.preventDefault()}
+                      onTouchEnd={(e) => e.preventDefault()}
+                      className="flex flex-col items-center gap-1.5 border-0 bg-transparent cursor-pointer p-3 rounded-xl touch-none w-20"
+                      style={{ color, WebkitTouchCallout: 'none' as any }}
+                    >
+                      <img
+                        src={app.faviconUrl || getFaviconUrl(app.url)}
+                        alt={app.name}
+                        width={44}
+                        height={44}
+                        style={{ borderRadius: 8, display: 'block' }}
+                        data-fallback="0"
+                        onError={(e) => {
+                          const img = e.target as HTMLImageElement;
+                          const attempt = Number(img.getAttribute('data-fallback') || '0');
+                          if (attempt === 0) {
+                            img.setAttribute('data-fallback', '1');
+                            img.src = getFaviconFallback(app.url);
+                          } else {
+                            img.src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44"><rect fill="%23666" width="44" height="44" rx="8"/><text fill="%23fff" x="22" y="29" text-anchor="middle" font-size="20" font-family="system-ui">' + app.name.charAt(0).toUpperCase() + '</text></svg>');
+                          }
+                        }}
+                      />
+                      <span className="text-xs font-medium truncate w-full text-center" style={{ color: 'var(--mila-textSecondary, #999)' }}>
+                        {app.name}
+                      </span>
+                    </button>
+                  </div>
+                );
+              })}
+
+              <button
+                type="button"
+                onClick={() => { setShowAddModal(true); setAddError(''); setNewAppName(''); setNewAppUrl(''); }}
+                className="flex flex-col items-center gap-1.5 border-2 border-dashed bg-transparent cursor-pointer p-3 rounded-xl touch-none w-20"
+                style={{ color: 'var(--mila-textSecondary, #999)', borderColor: 'var(--mila-border, #e5e5e5)' }}
+              >
+                <svg width={44} height={44} viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.5 }}>
+                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                </svg>
+                <span className="text-xs font-medium" style={{ color: 'var(--mila-textSecondary, #999)' }}>Add App</span>
+              </button>
+            </div>
+          </div>
+
 
         <div className="absolute right-6 top-1/2 -translate-y-1/2">
           <button
             type="button"
             onClick={() => {
+              if (fullscreen) {
+                setFullscreen(null);
+                setActive('settings');
+                setVisibleContent('settings');
+                return;
+              }
               setActive((curr) => {
                 const next = curr === 'settings' ? null : 'settings';
                 if (next) setVisibleContent(next);
@@ -492,9 +837,9 @@ function HomeInner() {
 
       <div className="fixed left-0 right-0 bottom-24 flex justify-center z-50 pointer-events-none overflow-visible">
         <div
-          className={`flex items-center gap-4 px-6 py-4 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.12)] pointer-events-auto
+          className={`flex items-center gap-4 px-6 py-4 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.12)]
             transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
-            ${showRestore ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+            ${showRestore ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'}`}
           style={{ background: 'var(--mila-surface, #fff)' }}
         >
           <span className="text-base font-medium" style={{ color: 'var(--mila-text, #333)' }}>Extension detected — restore services?</span>
@@ -550,6 +895,105 @@ function HomeInner() {
           >
             Skip, no services
           </button>
+        </div>
+      )}
+
+      {showAddModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.35)' }}
+          onClick={() => setShowAddModal(false)}
+        >
+          <div
+            className="rounded-2xl p-8 w-[440px] flex flex-col gap-5"
+            style={{
+              background: 'var(--mila-bg, #1a1a1a)',
+              border: '1px solid var(--mila-border, #333333)',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.4)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
+              Add Application
+            </h2>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium" style={{ color: 'var(--mila-textSecondary, #999)' }}>Name</label>
+              <input
+                type="text"
+                value={newAppName}
+                onChange={(e) => { setNewAppName(e.target.value); setAddError(''); }}
+                placeholder="e.g. Apple Music"
+                className="px-4 py-3 rounded-xl border-0 outline-none text-base"
+                style={{
+                  background: 'var(--mila-surface, #2a2a2a)',
+                  color: 'var(--mila-text, #f5f5f7)',
+                  border: addError ? '1px solid #ef4444' : '1px solid var(--mila-border, #333333)',
+                }}
+                autoFocus
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium" style={{ color: 'var(--mila-textSecondary, #999)' }}>URL</label>
+              <input
+                type="url"
+                value={newAppUrl}
+                onChange={(e) => { setNewAppUrl(e.target.value); setAddError(''); }}
+                placeholder="e.g. music.apple.com"
+                className="px-4 py-3 rounded-xl border-0 outline-none text-base"
+                style={{
+                  background: 'var(--mila-surface, #2a2a2a)',
+                  color: 'var(--mila-text, #f5f5f7)',
+                  border: addError ? '1px solid #ef4444' : '1px solid var(--mila-border, #333333)',
+                }}
+              />
+            </div>
+
+            {addError && (
+              <p className="text-sm" style={{ color: '#ef4444' }}>{addError}</p>
+            )}
+
+            <div className="flex gap-3 justify-end mt-2">
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="px-6 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
+                style={{
+                  background: 'var(--mila-surface, #2a2a2a)',
+                  color: 'var(--mila-text, #f5f5f7)',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const name = newAppName.trim();
+                  if (!name) { setAddError('Please enter a name'); return; }
+                  const normalized = normalizeUrl(newAppUrl);
+                  if (!normalized) { setAddError('Please enter a valid URL'); return; }
+                  const faviconUrl = await resolveFaviconUrl(normalized);
+                  const iconSource = faviconUrl || getFaviconUrl(normalized);
+                  let color = await extractFaviconColor(iconSource);
+                  if (!color) color = await extractFaviconColor(getFaviconFallback(normalized));
+                  const result = addCustomApp(name, normalized, color ?? undefined, faviconUrl ?? undefined);
+                  if (!result) { setAddError('This URL has already been added'); return; }
+                  setShowAddModal(false);
+                  setNewAppName('');
+                  setNewAppUrl('');
+                  setAddError('');
+                }}
+                className="px-6 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
+                style={{
+                  background: 'var(--mila-accent, #818cf8)',
+                  color: '#fff',
+                }}
+              >
+                Add
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </main>
