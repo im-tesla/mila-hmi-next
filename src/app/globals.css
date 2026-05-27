@@ -34,11 +34,6 @@ html, body {
   background: #1a1a1a !important;
 }
 
-@keyframes fadeTab {
-  from { opacity: 0; transform: translateX(8px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }

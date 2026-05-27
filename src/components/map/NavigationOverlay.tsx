@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { motion } from 'motion/react';
 import mapboxgl from 'mapbox-gl';
 import { ArrowRight, X } from 'lucide-react';
 import SearchBar from '@/components/map/SearchBar';
@@ -244,22 +245,22 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
 
             {/* Go button */}
             <div style={{ padding: '0 14px 14px' }}>
-              <button
+              <motion.button
                 type="button"
                 onClick={handleStartNavigation}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
                 className="flex items-center justify-center gap-2 w-full py-3.5 text-[17px] font-semibold border-0 cursor-pointer"
                 style={{
                   background: '#34c759',
                   color: '#fff',
                   borderRadius: 14,
-                  transition: 'background 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  transition: 'background 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.02)'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
               >
                 Go
                 <ArrowRight size={20} strokeWidth={2.5} />
-              </button>
+              </motion.button>
             </div>
           </div>
         </div>
@@ -290,9 +291,11 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
       {/* End button — during routing */}
       {isRouting && (
         <div className="absolute top-5 right-4 z-10" style={{ pointerEvents: 'auto' }}>
-          <button
+          <motion.button
             type="button"
             onClick={handleEndRoute}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
             className="px-5 py-3.5 rounded-2xl text-[15px] font-medium border-0 cursor-pointer"
             style={{
               background: 'var(--mila-surface, #2a2a2a)',
@@ -300,13 +303,10 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
               WebkitBackdropFilter: 'blur(24px)',
               color: '#FF453A',
               border: '1px solid var(--mila-border, #333)',
-              transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
           >
             End
-          </button>
+          </motion.button>
         </div>
       )}
     </div>

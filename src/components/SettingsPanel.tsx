@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'motion/react';
 import { Gamepad2, Navigation, Lock, Sun, Monitor, Code2 } from 'lucide-react';
 import Slider from '@/components/Slider';
 import {
@@ -615,11 +616,16 @@ export default function SettingsPanel() {
         })}
       </div>
 
-      {/* key={tab} restarts the fadeTab animation; tab components are now cheap
-          to mount because all persisted state lives in the settings store. */}
-      <div key={tab} className="flex-1 py-8 px-10 animate-[fadeTab_0.25s_cubic-bezier(0.16,1,0.3,1)]" style={{ overflowY: 'auto' }}>
+      <motion.div
+        key={tab}
+        className="flex-1 py-8 px-10"
+        style={{ overflowY: 'auto' }}
+        initial={{ opacity: 0, x: 8 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+      >
         <ActiveTab />
-      </div>
+      </motion.div>
     </div>
   );
 }

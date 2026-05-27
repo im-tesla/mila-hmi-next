@@ -2,6 +2,7 @@
 
 import type mapboxgl from 'mapbox-gl';
 import { Plus, Minus, Crosshair } from 'lucide-react';
+import { motion } from 'motion/react';
 
 interface MapControlsProps {
   map: mapboxgl.Map | null;
@@ -48,7 +49,6 @@ export default function MapControls({ map, userPosRef, navigating = false }: Map
     backdropFilter: 'blur(24px)',
     WebkitBackdropFilter: 'blur(24px)',
     border: '1px solid var(--mila-border, #333)',
-    transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
   };
 
   return (
@@ -56,15 +56,15 @@ export default function MapControls({ map, userPosRef, navigating = false }: Map
       className="absolute flex flex-col gap-2 z-10"
       style={{ top: '50%', right: 16, transform: 'translateY(-50%)' }}
     >
-      <button type="button" className={btnClass} style={btnStyle} onClick={handleZoomIn} aria-label="Zoom in">
+      <motion.button type="button" className={btnClass} style={btnStyle} onClick={handleZoomIn} aria-label="Zoom in" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
         <Plus size={20} color={iconColor} strokeWidth={2} />
-      </button>
-      <button type="button" className={btnClass} style={btnStyle} onClick={handleZoomOut} aria-label="Zoom out">
+      </motion.button>
+      <motion.button type="button" className={btnClass} style={btnStyle} onClick={handleZoomOut} aria-label="Zoom out" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
         <Minus size={20} color={iconColor} strokeWidth={2} />
-      </button>
-      <button type="button" className={btnClass} style={btnStyle} onClick={handleRecenter} aria-label="Recenter">
+      </motion.button>
+      <motion.button type="button" className={btnClass} style={btnStyle} onClick={handleRecenter} aria-label="Recenter" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
         <Crosshair size={20} color={iconColor} strokeWidth={2} />
-      </button>
+      </motion.button>
     </div>
   );
 }

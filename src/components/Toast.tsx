@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback, createContext, useContext } from 'react';
+import { useState, useCallback, createContext, useContext } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface ToastItem {
   id: number;
@@ -41,26 +42,26 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         className="fixed bottom-8 left-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none"
         style={{ transform: 'translateX(-50%)' }}
       >
-        {toasts.map((t) => (
-          <ToastItemView key={t.id} message={t.message} onDismiss={() => dismiss(t.id)} />
-        ))}
+        <AnimatePresence>
+          {toasts.map((t) => (
+            <ToastItemView key={t.id} message={t.message} onDismiss={() => dismiss(t.id)} />
+          ))}
+        </AnimatePresence>
       </div>
     </ToastContext.Provider>
   );
 }
 
 function ToastItemView({ message, onDismiss }: { message: string; onDismiss: () => void }) {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    requestAnimationFrame(() => setVisible(true));
-  }, []);
-
   return (
-    <div
+    <motion.div
       role="alert"
       onClick={onDismiss}
       className="pointer-events-auto cursor-pointer px-5 py-3 rounded-full text-sm font-medium"
+      initial={{ opacity: 0, y: -12, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -12, scale: 0.95 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       style={{
         background: 'var(--mila-surface, #2a2a2a)',
         backdropFilter: 'blur(24px)',
@@ -68,12 +69,9 @@ function ToastItemView({ message, onDismiss }: { message: string; onDismiss: () 
         color: 'var(--mila-text, #f5f5f7)',
         border: '1px solid var(--mila-border, #333)',
         boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-        transform: visible ? 'translateY(0)' : 'translateY(12px)',
-        opacity: visible ? 1 : 0,
-        transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
       {message}
-    </div>
+    </motion.div>
   );
 }
