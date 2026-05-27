@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import type { RouteData } from '@/lib/mapbox-directions';
 import { LaneArrow, getLaneLabel } from './turnArrows';
 import { MapPin } from 'lucide-react';
@@ -136,8 +137,15 @@ export default function NavigationPanel({ route, gpsSpeed }: NavigationPanelProp
       </div>
 
       {/* Expanded turn-by-turn list */}
+      <AnimatePresence>
       {expanded && (
-        <div style={{ ...cardStyle, maxHeight: 256, overflowY: 'auto' }}>
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          style={{ ...cardStyle, maxHeight: 256, overflowY: 'auto' }}
+        >
           <div className="flex flex-col gap-3">
             {steps.map((step, i) => {
               const dist = step.distance >= 1000
@@ -169,8 +177,9 @@ export default function NavigationPanel({ route, gpsSpeed }: NavigationPanelProp
               );
             })}
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
