@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Fuel, UtensilsCrossed, ShoppingBag, X, MapPin, Home, Briefcase } from 'lucide-react';
 import { fetchSuggestions, fetchPOIs, type SearchResult } from '@/lib/mapbox-geocoding';
 import { useToast } from '@/components/Toast';
+import { useSetting } from '@/lib/settings';
 
 type ThemeColors = { bg: string; surface: string; text: string; textSecondary: string; accent: string; border: string };
 
@@ -69,6 +70,9 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
     return () => mo.disconnect();
   }, []);
 
+  const [homeAddress] = useSetting('homeAddress');
+  const [workAddress] = useSetting('workAddress');
+
   const debouncedQuery = useDebounce(query.trim(), 300);
 
   useEffect(() => {
@@ -123,17 +127,24 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
   );
 
   const handleFavorite = useCallback(
-    (label: string) => {
+    (id: string, label: string) => {
+      const addr = id === 'home' ? homeAddress : workAddress;
+      if (!addr.trim()) {
+        showToast(`Set your ${label} address in Settings first`);
+        return;
+      }
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
       setLoading(true);
       setQuickResults([]);
 
-      fetchSuggestions(label, getProximity(), { signal: controller.signal })
+      fetchSuggestions(addr, getProximity(), { signal: controller.signal })
         .then((r) => {
           if (!controller.signal.aborted && r.length > 0) {
             setQuickResults(r);
+          } else if (!controller.signal.aborted) {
+            showToast(`Couldn't find your ${label} address`);
           }
         })
         .catch((err) => {
@@ -144,7 +155,7 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
           if (!controller.signal.aborted) setLoading(false);
         });
     },
-    [getProximity, showToast],
+    [getProximity, homeAddress, workAddress, showToast],
   );
 
   const handleSelect = useCallback(
@@ -244,7 +255,7 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
                   <button
                     key={id}
                     type="button"
-                    onClick={() => handleFavorite(label)}
+                    onClick={() => handleFavorite(id, label)}
                     aria-label={label}
                     className="flex items-center justify-center border-0 cursor-pointer"
                     style={{

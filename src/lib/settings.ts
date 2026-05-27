@@ -43,6 +43,8 @@ const DEFAULTS = {
   mb3dBuildings: true,
   mbPoliceAlerts: true,
   mbDucking: true,
+  homeAddress: '',
+  workAddress: '',
 };
 
 export type Settings = typeof DEFAULTS;
