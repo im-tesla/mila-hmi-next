@@ -4,7 +4,15 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Fuel, UtensilsCrossed, ShoppingBag, X, MapPin } from 'lucide-react';
 import { fetchSuggestions, fetchPOIs, type SearchResult } from '@/lib/mapbox-geocoding';
 import { useToast } from '@/components/Toast';
-import { useSetting, THEME_COLORS, type Theme, type ThemeColors } from '@/lib/settings';
+import { useSetting } from '@/lib/settings';
+
+type ThemeColors = { bg: string; surface: string; text: string; textSecondary: string; accent: string; border: string };
+
+const THEME: Record<string, ThemeColors> = {
+  Dark:  { bg: '#1a1a1a', surface: '#2a2a2a', text: '#f5f5f7', textSecondary: '#999999', accent: '#818cf8', border: '#333333' },
+  Light: { bg: '#ffffff', surface: '#f5f5f7', text: '#1a1a1a', textSecondary: '#666666', accent: '#0d9488', border: '#e5e5e5' },
+  Cute:  { bg: '#fdf2f8', surface: '#fce7f3', text: '#831843', textSecondary: '#9d174d', accent: '#db2777', border: '#fbcfe8' },
+};
 
 const QUICK_CHIPS = [
   { id: 'gas', label: 'Gas', Icon: Fuel, query: 'gas station' },
@@ -39,11 +47,7 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
   const { show: showToast } = useToast();
 
   const [theme] = useSetting('theme');
-  const [customColors] = useSetting('customColors');
-  const colors: ThemeColors =
-    theme === 'Custom'
-      ? customColors
-      : THEME_COLORS[theme as Exclude<Theme, 'Custom'>] ?? THEME_COLORS.Dark;
+  const colors: ThemeColors = THEME[theme] ?? THEME.Dark;
 
   const debouncedQuery = useDebounce(query.trim(), 300);
 
