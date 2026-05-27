@@ -15,44 +15,15 @@ interface RouteLayerProps {
 const ROUTE_SRC = 'mila-route-src';
 const ROUTE_CASING = 'mila-route-casing';
 const ROUTE_LINE = 'mila-route-line';
+const DEST_SRC = 'mila-dest-src';
+const DEST_DOT = 'mila-dest-dot';
+const DEST_RING = 'mila-dest-ring';
 const POI_SRC = 'mila-poi-src';
 const POI_DOTS = 'mila-poi-dots';
-
-function ensurePingKeyframes() {
-  if (document.getElementById('mila-pin-styles')) return;
-  const style = document.createElement('style');
-  style.id = 'mila-pin-styles';
-  style.textContent =
-    '@keyframes mila-ping{0%{transform:translate(-50%,-50%) scale(0.4);opacity:0.9}100%{transform:translate(-50%,-50%) scale(2.2);opacity:0}}';
-  document.head.appendChild(style);
-}
-
-function makeDestMarkerEl(): HTMLElement {
-  ensurePingKeyframes();
-  const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'position:relative;width:0;height:0';
-
-  const pulse = document.createElement('div');
-  pulse.style.cssText =
-    'position:absolute;width:38px;height:38px;border-radius:50%;' +
-    'background:rgba(239,68,68,0.18);top:0;left:0;transform:translate(-50%,-50%);' +
-    'animation:mila-user-ping 2.8s ease-out infinite;pointer-events:none';
-
-  const dot = document.createElement('div');
-  dot.style.cssText =
-    'position:absolute;width:16px;height:16px;border-radius:50%;background:#ef4444;' +
-    'border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.3);' +
-    'top:0;left:0;transform:translate(-50%,-50%);z-index:1';
-
-  wrapper.appendChild(pulse);
-  wrapper.appendChild(dot);
-  return wrapper;
-}
 
 export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerProps) {
   const poiTapRef = useRef(onPoiTap);
   poiTapRef.current = onPoiTap;
-  const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
   // Route line + destination marker
   useEffect(() => {
@@ -60,8 +31,6 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
     if (!m) return;
 
     function add() {
-      destMarkerRef.current?.remove();
-      destMarkerRef.current = null;
       cleanupRoute(m!);
       if (!route) return;
 
@@ -87,11 +56,29 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
         paint: { 'line-width': 3, 'line-color': '#3B82F6', 'line-opacity': 1 },
       });
 
-      // Animated destination pin (HTML Marker — survives style changes, GPU-rendered by browser)
-      const lastCoord = coords[coords.length - 1];
-      destMarkerRef.current = new mapboxgl.Marker({ element: makeDestMarkerEl(), anchor: 'center' })
-        .setLngLat(lastCoord as [number, number])
-        .addTo(m!);
+      // Destination marker — GL circle layers (no HTML Marker drift during zoom)
+      const lastCoord = coords[coords.length - 1] as [number, number];
+      m!.addSource(DEST_SRC, {
+        type: 'geojson',
+        data: { type: 'Feature', geometry: { type: 'Point', coordinates: lastCoord }, properties: {} },
+      });
+      addBelowBuildings(m!, {
+        id: DEST_RING,
+        type: 'circle',
+        source: DEST_SRC,
+        paint: { 'circle-radius': 16, 'circle-color': 'rgba(239,68,68,0.18)', 'circle-opacity': 1 },
+      });
+      addBelowBuildings(m!, {
+        id: DEST_DOT,
+        type: 'circle',
+        source: DEST_SRC,
+        paint: {
+          'circle-radius': 8,
+          'circle-color': '#ef4444',
+          'circle-stroke-color': '#fff',
+          'circle-stroke-width': 3,
+        },
+      });
     }
 
     // isStyleLoaded() is the correct guard — loaded() returns false while tiles
@@ -101,8 +88,6 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
 
     return () => {
       m.off('style.load', add);
-      destMarkerRef.current?.remove();
-      destMarkerRef.current = null;
       cleanupRoute(m!);
     };
   }, [map, route]);
@@ -177,6 +162,9 @@ function addBelowBuildings(map: mapboxgl.Map, layer: mapboxgl.AnyLayer) {
 }
 
 function cleanupRoute(map: mapboxgl.Map) {
+  try { if (map.getLayer(DEST_DOT)) map.removeLayer(DEST_DOT); } catch {}
+  try { if (map.getLayer(DEST_RING)) map.removeLayer(DEST_RING); } catch {}
+  try { if (map.getSource(DEST_SRC)) map.removeSource(DEST_SRC); } catch {}
   try { if (map.getLayer(ROUTE_LINE)) map.removeLayer(ROUTE_LINE); } catch {}
   try { if (map.getLayer(ROUTE_CASING)) map.removeLayer(ROUTE_CASING); } catch {}
   try { if (map.getSource(ROUTE_SRC)) map.removeSource(ROUTE_SRC); } catch {}
