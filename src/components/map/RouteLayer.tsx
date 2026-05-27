@@ -99,7 +99,7 @@ export default function RouteLayer({ map, routes, routeIndex, pois, onPoiTap, on
             type: 'line',
             source: ROUTE_SRC(i),
             layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: { 'line-width': 1.5, 'line-color': '#9CA3AF', 'line-opacity': 0.4 },
+            paint: { 'line-width': 1, 'line-color': '#9CA3AF', 'line-opacity': 0.25 },
           });
 
           // Click handler for alternative routes
