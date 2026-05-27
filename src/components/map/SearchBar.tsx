@@ -250,7 +250,7 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
                 animation: 'fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both',
               }}
             >
-              <div className="flex justify-center gap-2.5">
+              <div className="flex justify-center gap-3">
                 {FAVORITES.map(({ id, label, Icon }) => (
                   <button
                     key={id}
@@ -259,25 +259,16 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
                     aria-label={label}
                     className="flex items-center justify-center border-0 cursor-pointer"
                     style={{
-                      width: 64, height: 64,
-                      background: colors.bg,
-                      borderRadius: 18,
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
-                      transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background var(--anim-duration, 0.2s) cubic-bezier(0.16, 1, 0.3, 1)',
+                      width: 56, height: 56,
+                      background: id === 'home' ? '#3b82f6' : '#6366f1',
+                      borderRadius: 16,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                      transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.06)'; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
                   >
-                    <div
-                      style={{
-                        width: 42, height: 42, borderRadius: 12,
-                        background: id === 'home' ? '#3b82f6' : '#6366f1',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Icon size={22} color="#fff" strokeWidth={2.5} />
-                    </div>
+                    <Icon size={24} color="#fff" strokeWidth={2.5} />
                   </button>
                 ))}
                 {QUICK_CHIPS.map(({ id, label, Icon, query: chipQuery }) => (
@@ -288,25 +279,16 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
                     aria-label={label}
                     className="flex items-center justify-center border-0 cursor-pointer"
                     style={{
-                      width: 64, height: 64,
-                      background: colors.bg,
-                      borderRadius: 18,
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
-                      transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background var(--anim-duration, 0.2s) cubic-bezier(0.16, 1, 0.3, 1)',
+                      width: 56, height: 56,
+                      background: chipColor(id),
+                      borderRadius: 16,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                      transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.06)'; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
                   >
-                    <div
-                      style={{
-                        width: 42, height: 42, borderRadius: 12,
-                        background: chipColor(id),
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Icon size={22} color="#fff" strokeWidth={2.5} />
-                    </div>
+                    <Icon size={24} color="#fff" strokeWidth={2.5} />
                   </button>
                 ))}
               </div>
