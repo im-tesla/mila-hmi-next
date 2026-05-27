@@ -6,8 +6,17 @@ import type { RouteData } from '@/lib/mapbox-directions';
 import { LaneArrow, getLaneLabel } from './turnArrows';
 import { ChevronUp } from 'lucide-react';
 
+interface SimState {
+  position: [number, number];
+  speedKmh: number;
+  bearing: number;
+  remainingDistance: number;
+  remainingDuration: number;
+}
+
 interface NavigationPanelProps {
   route: RouteData;
+  simState?: SimState | null;
 }
 
 function formatTime(ms: number): string {
@@ -15,7 +24,7 @@ function formatTime(ms: number): string {
   return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
-export default function NavigationPanel({ route }: NavigationPanelProps) {
+export default function NavigationPanel({ route, simState }: NavigationPanelProps) {
   const [expanded, setExpanded] = useState(false);
   const steps = route.steps;
   const currentStep = steps[0];
@@ -34,9 +43,12 @@ export default function NavigationPanel({ route }: NavigationPanelProps) {
     WebkitBackdropFilter: 'blur(24px)',
   };
 
-  const arrivalTime = route.duration > 0 ? formatTime(route.duration) : '--:--';
-  const remainingMin = route.duration > 0 ? Math.round(route.duration / 60) : '—';
-  const remainingKm = route.distance > 0 ? (route.distance / 1000).toFixed(1) : '—';
+  const remainingDur = simState ? simState.remainingDuration : route.duration;
+  const remainingDist = simState ? simState.remainingDistance : route.distance;
+  const arrivalTime = remainingDur > 0 ? formatTime(remainingDur) : '--:--';
+  const remainingMin = remainingDur > 0 ? Math.round(remainingDur / 60) : '—';
+  const remainingKm = remainingDist > 0 ? (remainingDist / 1000).toFixed(1) : '—';
+  const displaySpeed = simState ? simState.speedKmh : null;
 
   return (
     <>
@@ -137,6 +149,24 @@ export default function NavigationPanel({ route }: NavigationPanelProps) {
               : 'Continue on current road'}
           </div>
         </div>
+
+        {/* Current speed — shown during simulation */}
+        {displaySpeed != null && displaySpeed > 0 && (
+          <div style={{ marginTop: 8, alignSelf: 'flex-start' }}>
+            <div
+              className="flex items-center justify-center"
+              style={{
+                width: 56, height: 56, borderRadius: '50%',
+                background: 'var(--mila-accent, #818cf8)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+              }}
+            >
+              <span style={{ color: '#fff', fontSize: 20, fontWeight: 700, lineHeight: 1 }}>
+                {displaySpeed}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Speed limit — EU circle */}
         <div style={{ marginTop: 8, alignSelf: 'flex-start' }}>
