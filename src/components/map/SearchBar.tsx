@@ -215,14 +215,16 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
                     key={id}
                     type="button"
                     onClick={() => handleQuickChip(id, chipQuery)}
-                    className="flex-1 flex items-center justify-center gap-2.5 py-3.5 border-0 cursor-pointer"
+                    aria-label={label}
+                    className="flex items-center justify-center border-0 cursor-pointer"
                     style={{
+                      width: 64, height: 64,
                       background: colors.bg,
-                      borderRadius: 16,
+                      borderRadius: 18,
                       boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
                       transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background var(--anim-duration, 0.2s) cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.04)'; }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.06)'; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
                   >
                     <div
@@ -235,9 +237,6 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
                     >
                       <Icon size={22} color="#fff" strokeWidth={2.5} />
                     </div>
-                    <span className="text-[15px] font-medium" style={{ color: colors.text, lineHeight: 1 }}>
-                      {label}
-                    </span>
                   </button>
                 ))}
               </div>
