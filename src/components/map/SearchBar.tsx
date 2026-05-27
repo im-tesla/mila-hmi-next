@@ -133,49 +133,55 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
     <div ref={containerRef} className="absolute top-5 left-1/2 z-20" style={{ transform: 'translateX(-50%)' }}>
       <div
         style={{
-          width: expanded ? 370 : 340,
+          width: expanded ? 420 : 380,
           borderRadius: 18,
           overflow: 'hidden',
-          background: '#2c2c2e',
-          boxShadow: '0 2px 16px rgba(0,0,0,0.35), 0 0 0 0.5px rgba(255,255,255,0.06)',
+          background: 'var(--mila-surface, #2c2c2e)',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.35), 0 0 0 0.5px var(--mila-border, rgba(255,255,255,0.06))',
+          transition: 'box-shadow var(--anim-duration, 0.2s) cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
         {/* Input row */}
-          <div className="flex items-center gap-2.5 px-5 py-3.5">
-            <Search size={18} color={textMuted} />
-            {expanded ? (
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search places..."
-                className="flex-1 bg-transparent border-0 outline-none text-[15px]"
-                style={{ color: 'var(--mila-text, #f5f5f7)' }}
-                autoFocus
-              />
-            ) : (
-              <span
-                className="flex-1 text-[15px] cursor-pointer"
-                style={{ color: textMuted }}
-                onClick={handleFocus}
-              >
-                Where to?
-              </span>
-            )}
-            {expanded && (
-              <button type="button" onClick={handleClose} className="border-0 bg-transparent cursor-pointer p-0.5">
-                <X size={16} color={textMuted} />
-              </button>
-            )}
-          </div>
+        <div className="flex items-center gap-2.5 px-5 py-3.5">
+          <Search size={20} color={textMuted} />
+          {expanded ? (
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search places..."
+              className="flex-1 bg-transparent border-0 outline-none text-[16px]"
+              style={{ color: 'var(--mila-text, #f5f5f7)' }}
+              autoFocus
+            />
+          ) : (
+            <span
+              className="flex-1 text-[16px] cursor-pointer"
+              style={{ color: textMuted }}
+              onClick={handleFocus}
+            >
+              Where to?
+            </span>
+          )}
+          {expanded && (
+            <button type="button" onClick={handleClose} className="border-0 bg-transparent cursor-pointer p-0.5">
+              <X size={18} color={textMuted} />
+            </button>
+          )}
+        </div>
 
-          {/* Quick chips */}
-          {expanded && hasQuickChips && (
-            <>
-              <div className="mx-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
-              <div className="px-5 pt-3.5 pb-2">
-                <div className="flex gap-2.5">
+        {/* Quick chips */}
+        {expanded && hasQuickChips && (
+          <>
+            <div className="mx-5" style={{ borderTop: '1px solid var(--mila-border, rgba(255,255,255,0.06))' }} />
+            <div
+              className="px-5 pt-3.5 pb-2"
+              style={{
+                animation: expanded ? 'fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both' : undefined,
+              }}
+            >
+              <div className="flex gap-2.5">
                 {QUICK_CHIPS.map(({ id, label, Icon, query: chipQuery }) => (
                   <button
                     key={id}
@@ -183,32 +189,32 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
                     onClick={() => handleQuickChip(id, chipQuery)}
                     className="flex-1 flex items-center justify-center gap-2 py-3 border-0 cursor-pointer"
                     style={{
-                      background: '#1c1c1e',
+                      background: 'var(--mila-bg, #1c1c1e)',
                       borderRadius: 14,
                       boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-                      transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                      transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background var(--anim-duration, 0.2s) cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.04)'; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
                   >
                     <div
                       style={{
-                        width: 28, height: 28, borderRadius: 9,
+                        width: 34, height: 34, borderRadius: 10,
                         background: id === 'gas' ? '#ff9f0a' : id === 'food' ? '#ff6b35' : '#34c759',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         flexShrink: 0,
                       }}
                     >
-                      <Icon size={14} color="#fff" strokeWidth={2.5} />
+                      <Icon size={18} color="#fff" strokeWidth={2.5} />
                     </div>
-                    <span className="text-[13px] font-medium" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
+                    <span className="text-[14px] font-medium" style={{ color: 'var(--mila-text, #f5f5f7)', lineHeight: 1 }}>
                       {label}
                     </span>
                   </button>
                 ))}
               </div>
             </div>
-            </>
+          </>
           )}
 
           {/* Divider */}
@@ -218,7 +224,11 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
 
           {/* Autocomplete results */}
           {showDropdown && debouncedQuery && results.length > 0 && (
-            <div>
+            <div
+              style={{
+                animation: 'fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both',
+              }}
+            >
               {results.map((r, i) => (
                 <button
                   key={r.id}
@@ -229,11 +239,11 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
                     borderBottom: i < results.length - 1 ? '1px solid var(--mila-border, #333)' : 'none',
                   }}
                 >
-                  <MapPin size={16} color={textMuted} />
-                  <span className="text-[14px] flex-1 truncate" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
+                  <MapPin size={18} color={textMuted} />
+                  <span className="text-[15px] flex-1 truncate" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
                     {r.name}
                   </span>
-                  <span className="text-[12px] flex-shrink-0" style={{ color: textMuted }}>
+                  <span className="text-[13px] flex-shrink-0" style={{ color: textMuted }}>
                     {r.address.split(',').slice(-2).join(',').trim()}
                   </span>
                 </button>
@@ -243,7 +253,11 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
 
           {/* Quick route POI results */}
           {showDropdown && quickResults.length > 0 && (
-            <div>
+            <div
+              style={{
+                animation: 'fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both',
+              }}
+            >
               {quickResults.map((r, i) => (
                 <button
                   key={r.id}
@@ -254,10 +268,10 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
                     borderBottom: i < quickResults.length - 1 ? '1px solid var(--mila-border, #333)' : 'none',
                   }}
                 >
-                  <MapPin size={16} color={textMuted} />
+                  <MapPin size={18} color={textMuted} />
                   <div className="flex-1 min-w-0">
-                    <div className="text-[14px] truncate" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{r.name}</div>
-                    <div className="text-[12px] truncate" style={{ color: textMuted }}>{r.address}</div>
+                    <div className="text-[15px] truncate" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{r.name}</div>
+                    <div className="text-[13px] truncate" style={{ color: textMuted }}>{r.address}</div>
                   </div>
                 </button>
               ))}
