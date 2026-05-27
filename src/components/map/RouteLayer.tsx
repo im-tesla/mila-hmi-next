@@ -15,15 +15,13 @@ interface RouteLayerProps {
 const ROUTE_SRC = 'mila-route-src';
 const ROUTE_CASING = 'mila-route-casing';
 const ROUTE_LINE = 'mila-route-line';
-const DEST_SRC = 'mila-dest-src';
-const DEST_DOT = 'mila-dest-dot';
-const DEST_RING = 'mila-dest-ring';
 const POI_SRC = 'mila-poi-src';
 const POI_DOTS = 'mila-poi-dots';
 
 export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerProps) {
   const poiTapRef = useRef(onPoiTap);
   poiTapRef.current = onPoiTap;
+  const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
   // Route line + destination marker
   useEffect(() => {
@@ -56,38 +54,41 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
         paint: { 'line-width': 3, 'line-color': '#3B82F6', 'line-opacity': 1 },
       });
 
-      // Destination marker — GL circle layers (no HTML Marker drift during zoom)
+      // Destination pin — same approach as user location marker in Map.tsx
       const lastCoord = coords[coords.length - 1] as [number, number];
-      m!.addSource(DEST_SRC, {
-        type: 'geojson',
-        data: { type: 'Feature', geometry: { type: 'Point', coordinates: lastCoord }, properties: {} },
-      });
-      addBelowBuildings(m!, {
-        id: DEST_RING,
-        type: 'circle',
-        source: DEST_SRC,
-        paint: { 'circle-radius': 16, 'circle-color': 'rgba(239,68,68,0.18)', 'circle-opacity': 1 },
-      });
-      addBelowBuildings(m!, {
-        id: DEST_DOT,
-        type: 'circle',
-        source: DEST_SRC,
-        paint: {
-          'circle-radius': 8,
-          'circle-color': '#ef4444',
-          'circle-stroke-color': '#fff',
-          'circle-stroke-width': 3,
-        },
-      });
+
+      if (destMarkerRef.current) {
+        destMarkerRef.current.setLngLat(lastCoord);
+      } else {
+        const el = document.createElement('div');
+        el.style.cssText = 'position:relative;width:18px;height:18px;display:flex;align-items:center;justify-content:center';
+
+        const pulse = document.createElement('div');
+        pulse.style.cssText =
+          'position:absolute;width:38px;height:38px;border-radius:50%;background:rgba(239,68,68,0.18);' +
+          'top:50%;left:50%;animation:mila-user-ping 2.8s ease-out infinite;pointer-events:none';
+
+        const dot = document.createElement('div');
+        dot.style.cssText =
+          'width:16px;height:16px;border-radius:50%;background:#ef4444;border:3px solid #fff;' +
+          'box-shadow:0 2px 10px rgba(0,0,0,0.3);position:relative;z-index:1';
+
+        el.appendChild(pulse);
+        el.appendChild(dot);
+
+        destMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: 'center' })
+          .setLngLat(lastCoord)
+          .addTo(m!);
+      }
     }
 
-    // isStyleLoaded() is the correct guard — loaded() returns false while tiles
-    // are fetching (e.g. after fitBounds), which would silently skip add().
     if (m.isStyleLoaded()) add();
     m.on('style.load', add);
 
     return () => {
       m.off('style.load', add);
+      destMarkerRef.current?.remove();
+      destMarkerRef.current = null;
       cleanupRoute(m!);
     };
   }, [map, route]);
@@ -99,7 +100,6 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
 
     function add() {
       cleanupPois(m!);
-      // When a route is showing, the destination marker is more prominent — skip POI dot
       if (pois.length === 0 || route) return;
 
       const poiMap = new Map(pois.map((p) => [p.id, p]));
@@ -147,24 +147,17 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
 
 function addBelowBuildings(map: mapboxgl.Map, layer: mapboxgl.AnyLayer) {
   const styleSpec = map.getStyle() as any;
-  // Standard style returns a spec with an imports[] array instead of a flat layers list.
-  // Legacy styles have no imports. This is more reliable than checking the name string.
   const isStandard = Array.isArray(styleSpec?.imports) && styleSpec.imports.length > 0;
 
   if (isStandard) {
-    // slot: 'middle' = above roads, below 3D buildings and labels (Standard style spec)
     map.addLayer({ ...layer, slot: 'middle' } as mapboxgl.AnyLayer);
   } else {
-    // Legacy styles: insert before the 3D buildings fill-extrusion layer
     const beforeId = map.getLayer('building-3d') ? 'building-3d' : undefined;
     map.addLayer(layer, beforeId);
   }
 }
 
 function cleanupRoute(map: mapboxgl.Map) {
-  try { if (map.getLayer(DEST_DOT)) map.removeLayer(DEST_DOT); } catch {}
-  try { if (map.getLayer(DEST_RING)) map.removeLayer(DEST_RING); } catch {}
-  try { if (map.getSource(DEST_SRC)) map.removeSource(DEST_SRC); } catch {}
   try { if (map.getLayer(ROUTE_LINE)) map.removeLayer(ROUTE_LINE); } catch {}
   try { if (map.getLayer(ROUTE_CASING)) map.removeLayer(ROUTE_CASING); } catch {}
   try { if (map.getSource(ROUTE_SRC)) map.removeSource(ROUTE_SRC); } catch {}
