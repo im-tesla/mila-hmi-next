@@ -5,25 +5,42 @@ import { Plus, Minus, Crosshair } from 'lucide-react';
 
 interface MapControlsProps {
   map: mapboxgl.Map | null;
+  userPosRef: React.RefObject<[number, number] | null>;
 }
 
-export default function MapControls({ map }: MapControlsProps) {
+export default function MapControls({ map, userPosRef }: MapControlsProps) {
   const handleZoomIn = () => map?.zoomIn({ duration: 300 });
   const handleZoomOut = () => map?.zoomOut({ duration: 300 });
 
   const handleRecenter = () => {
     if (!map) return;
+
+    // Use the map's tracked GPS position (from Map.tsx watchPosition)
+    const pos = userPosRef.current;
+    if (pos) {
+      map.flyTo({
+        center: pos,
+        zoom: 15,
+        duration: 1200,
+      });
+      return;
+    }
+
+    // Fallback: try browser geolocation directly
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
+        (p) => {
           map.flyTo({
-            center: [pos.coords.longitude, pos.coords.latitude],
-            zoom: 14,
+            center: [p.coords.longitude, p.coords.latitude],
+            zoom: 15,
             duration: 1200,
           });
         },
-        () => {},
-        { enableHighAccuracy: true, timeout: 5000 },
+        () => {
+          // Both failed — fly to Warsaw default
+          map.flyTo({ center: [21.01, 52.23], zoom: 12, duration: 1200 });
+        },
+        { enableHighAccuracy: true, timeout: 8000 },
       );
     }
   };

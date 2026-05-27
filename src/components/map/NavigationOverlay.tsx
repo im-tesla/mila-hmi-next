@@ -15,9 +15,10 @@ const WARSAW: [number, number] = [21.01, 52.23];
 interface NavigationOverlayProps {
   map: mapboxgl.Map | null;
   rightPadding?: number;
+  userPosRef: React.RefObject<[number, number] | null>;
 }
 
-export default function NavigationOverlay({ map, rightPadding = 0 }: NavigationOverlayProps) {
+export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }: NavigationOverlayProps) {
   const [selectedPoi, setSelectedPoi] = useState<SearchResult | null>(null);
   const [route, setRoute] = useState<RouteData | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
@@ -156,7 +157,7 @@ export default function NavigationOverlay({ map, rightPadding = 0 }: NavigationO
 
       {/* Map controls */}
       <div style={{ pointerEvents: 'auto' }}>
-        <MapControls map={map} />
+        <MapControls map={map} userPosRef={userPosRef} />
       </div>
 
       {/* Route layer */}

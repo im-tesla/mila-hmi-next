@@ -35,6 +35,7 @@ export default function Map({ rightPadding = 0 }: { rightPadding?: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const paddingRef = useRef(0);
+  const userPosRef = useRef<[number, number] | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
   // ─── Init / destroy ───────────────────────────────────────────
@@ -129,6 +130,7 @@ export default function Map({ rightPadding = 0 }: { rightPadding?: number }) {
       geoWatchId = navigator.geolocation.watchPosition(
         (pos) => {
           userLngLat = [pos.coords.longitude, pos.coords.latitude];
+          userPosRef.current = userLngLat;
           applyUserPosition();
           if (!didFitOnce) {
             didFitOnce = true;
@@ -186,7 +188,7 @@ export default function Map({ rightPadding = 0 }: { rightPadding?: number }) {
   return (
     <div className="w-full h-full relative">
       <div ref={containerRef} className="w-full h-full" />
-      {mapReady && <NavigationOverlay map={mapRef.current!} rightPadding={rightPadding} />}
+      {mapReady && <NavigationOverlay map={mapRef.current!} rightPadding={rightPadding} userPosRef={userPosRef} />}
     </div>
   );
 }
