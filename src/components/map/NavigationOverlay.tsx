@@ -140,7 +140,7 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
 
   const etaMin = route ? Math.round(route.duration / 60) : 0;
   const distKm = route ? (route.distance / 1000).toFixed(1) : '0';
-  const mainRoad = route?.steps[0]?.instruction ?? '';
+  const mainRoad = route?.steps[0]?.name ?? '';
 
   return (
     <div
@@ -201,7 +201,7 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
                 {mainRoad && (
                   <>
                     <span style={{ color: 'var(--mila-border, #555)' }}>·</span>
-                    <span className="truncate">{mainRoad.replace(/^Drive\s+/, '').replace(/^Head\s+/, '')}</span>
+                    <span className="truncate">{mainRoad}</span>
                   </>
                 )}
               </div>
