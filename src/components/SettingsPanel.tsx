@@ -134,12 +134,9 @@ const COLOR_FIELDS: { label: string; key: keyof ThemeColors }[] = [
 function DisplayTab() {
   const [theme, setTheme] = useSetting('theme');
   const [customColors, setCustomColors] = useSetting('customColors');
-  const [mapStyle, setMapStyle] = useSetting('mapStyle');
   const [uiScale, setUiScale] = useSetting('uiScale');
   const [panelSize, setPanelSize] = useSetting('panelSize');
   const [animations, setAnimations] = useSetting('animations');
-  const [homeAddress, setHomeAddress] = useSetting('homeAddress');
-  const [workAddress, setWorkAddress] = useSetting('workAddress');
   const [showCustom, setShowCustom] = useState(false);
   const pickerRefs = useRef<Record<string, HTMLInputElement | null>>({});
   // Track local text input for hex fields so the user can type intermediate
@@ -173,29 +170,6 @@ function DisplayTab() {
       </section>
 
       <section>
-        <SectionHeader>Map style</SectionHeader>
-        <div className="flex flex-wrap gap-2">
-          {MAP_STYLES.map((s) => {
-            const selected = mapStyle === s.url;
-            return (
-              <button
-                key={s.url}
-                type="button"
-                onClick={() => setMapStyle(s.url)}
-                className="px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-[var(--anim-duration,0.15s)]"
-                style={{
-                  background: selected ? 'var(--mila-accent, #0d9488)' : 'var(--mila-surface, #f3f4f6)',
-                  color: selected ? '#fff' : 'var(--mila-textSecondary, #666)',
-                }}
-              >
-                {s.label}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <section>
         <SectionHeader>UI scale</SectionHeader>
         <ChoiceGroup
           options={Object.keys(UI_SCALES) as UiScale[]}
@@ -217,40 +191,6 @@ function DisplayTab() {
       <section>
         <SectionHeader>Animations</SectionHeader>
         <ChoiceGroup options={ANIMATIONS_OPTIONS} value={animations} onChange={setAnimations} />
-      </section>
-
-      <section>
-        <SectionHeader>Favorites</SectionHeader>
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium" style={{ color: 'var(--mila-textSecondary, #666)' }}>Home address</label>
-            <input
-              type="text"
-              value={homeAddress}
-              onChange={(e) => setHomeAddress(e.target.value)}
-              placeholder="e.g. 221B Baker Street, London"
-              className="px-4 py-3 rounded-xl border-0 outline-none text-base"
-              style={{
-                background: 'var(--mila-surface, #f3f4f6)',
-                color: 'var(--mila-text, #333)',
-              }}
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium" style={{ color: 'var(--mila-textSecondary, #666)' }}>Work address</label>
-            <input
-              type="text"
-              value={workAddress}
-              onChange={(e) => setWorkAddress(e.target.value)}
-              placeholder="e.g. 1 Infinite Loop, Cupertino"
-              className="px-4 py-3 rounded-xl border-0 outline-none text-base"
-              style={{
-                background: 'var(--mila-surface, #f3f4f6)',
-                color: 'var(--mila-text, #333)',
-              }}
-            />
-          </div>
-        </div>
       </section>
 
       {showCustom && (
@@ -551,7 +491,70 @@ function LightsTab() {
 // ─── Navigation tab ──────────────────────────────────────────────
 
 function NavigationTab() {
-  return <PlaceholderTab name="Navigation" />;
+  const [mapStyle, setMapStyle] = useSetting('mapStyle');
+  const [homeAddress, setHomeAddress] = useSetting('homeAddress');
+  const [workAddress, setWorkAddress] = useSetting('workAddress');
+
+  return (
+    <div className="space-y-8">
+      <section>
+        <SectionHeader>Map style</SectionHeader>
+        <div className="flex flex-wrap gap-2">
+          {MAP_STYLES.map((s) => {
+            const selected = mapStyle === s.url;
+            return (
+              <button
+                key={s.url}
+                type="button"
+                onClick={() => setMapStyle(s.url)}
+                className="px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-[var(--anim-duration,0.15s)]"
+                style={{
+                  background: selected ? 'var(--mila-accent, #0d9488)' : 'var(--mila-surface, #f3f4f6)',
+                  color: selected ? '#fff' : 'var(--mila-textSecondary, #666)',
+                }}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section>
+        <SectionHeader>Favorites</SectionHeader>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium" style={{ color: 'var(--mila-textSecondary, #666)' }}>Home address</label>
+            <input
+              type="text"
+              value={homeAddress}
+              onChange={(e) => setHomeAddress(e.target.value)}
+              placeholder="e.g. 221B Baker Street, London"
+              className="px-4 py-3 rounded-xl border-0 outline-none text-base"
+              style={{
+                background: 'var(--mila-surface, #f3f4f6)',
+                color: 'var(--mila-text, #333)',
+              }}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium" style={{ color: 'var(--mila-textSecondary, #666)' }}>Work address</label>
+            <input
+              type="text"
+              value={workAddress}
+              onChange={(e) => setWorkAddress(e.target.value)}
+              placeholder="e.g. 1 Infinite Loop, Cupertino"
+              className="px-4 py-3 rounded-xl border-0 outline-none text-base"
+              style={{
+                background: 'var(--mila-surface, #f3f4f6)',
+                color: 'var(--mila-text, #333)',
+              }}
+            />
+          </div>
+        </div>
+      </section>
+    </div>
+  );
 }
 
 // ─── Locks tab ───────────────────────────────────────────────────
