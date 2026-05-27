@@ -131,37 +131,16 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
 
   return (
     <div ref={containerRef} className="absolute top-5 left-1/2 z-20" style={{ transform: 'translateX(-50%)' }}>
-      {expanded && (
-        <div
-          className="fixed inset-0 z-[-1]"
-          style={{
-            background: 'rgba(0,0,0,0.25)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
-          }}
-        />
-      )}
-
-      {/* Outer shell: glass + border-radius */}
       <div
         style={{
-          width: expanded ? 400 : 360,
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          borderRadius: 22,
-          transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          width: expanded ? 370 : 340,
+          borderRadius: 18,
+          overflow: 'hidden',
+          background: '#2c2c2e',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.35), 0 0 0 0.5px rgba(255,255,255,0.06)',
         }}
       >
-        {/* Inner: background + border + overflow clip */}
-        <div
-          style={{
-            background: 'var(--mila-surface, #2a2a2a)',
-            border: '1px solid var(--mila-border, #333)',
-            borderRadius: 22,
-            overflow: 'hidden',
-          }}
-        >
-          {/* Input row */}
+        {/* Input row */}
           <div className="flex items-center gap-2.5 px-5 py-3.5">
             <Search size={18} color={textMuted} />
             {expanded ? (
@@ -193,30 +172,35 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
 
           {/* Quick chips */}
           {expanded && hasQuickChips && (
-            <div className="px-5 pb-2">
-              <div className="text-[11px] uppercase tracking-wider mb-2" style={{ color: textMuted }}>
-                Quick search
-              </div>
-              <div className="flex gap-2.5">
+            <>
+              <div className="mx-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+              <div className="px-5 pt-3.5 pb-2">
+                <div className="flex gap-2.5">
                 {QUICK_CHIPS.map(({ id, label, Icon, query: chipQuery }) => (
                   <button
                     key={id}
                     type="button"
                     onClick={() => handleQuickChip(id, chipQuery)}
-                    className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-2xl border-0 cursor-pointer"
+                    className="flex-1 flex items-center justify-center gap-2 py-3 border-0 cursor-pointer"
                     style={{
-                      background: 'color-mix(in srgb, var(--mila-textSecondary, #999) 12%, transparent)',
-                      border: '1px solid var(--mila-border, #333)',
+                      background: '#1c1c1e',
+                      borderRadius: 14,
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
                       transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.transform = 'scale(1.03)';
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
-                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.04)'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
                   >
-                    <Icon size={20} color="var(--mila-textSecondary, #999)" />
+                    <div
+                      style={{
+                        width: 28, height: 28, borderRadius: 9,
+                        background: id === 'gas' ? '#ff9f0a' : id === 'food' ? '#ff6b35' : '#34c759',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icon size={14} color="#fff" strokeWidth={2.5} />
+                    </div>
                     <span className="text-[13px] font-medium" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
                       {label}
                     </span>
@@ -224,6 +208,7 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
                 ))}
               </div>
             </div>
+            </>
           )}
 
           {/* Divider */}
@@ -291,8 +276,8 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
               />
             </div>
           )}
-        </div>
       </div>
     </div>
   );
 }
+
