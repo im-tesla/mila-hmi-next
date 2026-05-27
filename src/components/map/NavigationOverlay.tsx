@@ -11,7 +11,6 @@ import RouteLayer from '@/components/map/RouteLayer';
 import { fetchRoutes, type RouteData } from '@/lib/mapbox-directions';
 import type { SearchResult } from '@/lib/mapbox-geocoding';
 import { useToast } from '@/components/Toast';
-import { useSimulatedDrive } from '@/lib/simulate-route';
 
 const WARSAW: [number, number] = [21.01, 52.23];
 
@@ -35,8 +34,6 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
   const hasRoutes = routes.length > 0;
   const selectedRoute = routes[routeIndex] ?? null;
 
-  const [simulating, setSimulating] = useState(false);
-  const simState = useSimulatedDrive(map, selectedRoute, navigating && simulating, userPosRef);
   const isRouting = navigating && selectedRoute !== null;
   const isPreview = hasRoutes && !navigating;
 
@@ -288,7 +285,7 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
           exit={{ opacity: 0, x: -16 }}
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         >
-          <NavigationPanel route={selectedRoute} simState={simState} />
+          <NavigationPanel route={selectedRoute} />
         </motion.div>
       )}
       </AnimatePresence>
@@ -319,54 +316,30 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
       )}
       </AnimatePresence>
 
-      {/* End button + Simulate toggle — during routing (top-right) */}
+      {/* End button — during routing */}
       <AnimatePresence>
       {isRouting && (
-        <motion.div
-          className="absolute top-5 right-4 z-10 flex items-center gap-2"
+        <motion.button
+          type="button"
+          onClick={handleEndRoute}
+          className="absolute top-5 right-4 z-10 px-5 py-3.5 rounded-2xl text-[15px] font-medium border-0 cursor-pointer"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
           transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          style={{ pointerEvents: 'auto' }}
-        >
-          {/* Simulate toggle */}
-          <motion.button
-            type="button"
-            onClick={() => setSimulating((v) => !v)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.97 }}
-            className="px-4 py-2.5 rounded-2xl text-[13px] font-medium border-0 cursor-pointer"
-            style={{
-              background: simulating
-                ? 'var(--mila-accent, #818cf8)'
-                : 'var(--mila-surface, #2a2a2a)',
-              color: simulating ? '#fff' : 'var(--mila-textSecondary, #999)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-              border: simulating ? 'none' : '1px solid var(--mila-border, #333)',
-            }}
-          >
-            {simulating ? 'Sim ON' : 'Sim'}
-          </motion.button>
-
-          <motion.button
-            type="button"
-            onClick={handleEndRoute}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.97 }}
-            className="px-5 py-3.5 rounded-2xl text-[15px] font-medium border-0 cursor-pointer"
-            style={{
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.97 }}
+          style={{
               background: 'var(--mila-surface, #2a2a2a)',
               backdropFilter: 'blur(24px)',
               WebkitBackdropFilter: 'blur(24px)',
               color: '#FF453A',
               border: '1px solid var(--mila-border, #333)',
+              pointerEvents: 'auto',
             }}
           >
             End
           </motion.button>
-        </motion.div>
       )}
       </AnimatePresence>
     </div>
