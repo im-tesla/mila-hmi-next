@@ -47,7 +47,7 @@ export default function NavigationPanel({ route }: NavigationPanelProps) {
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -16 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        style={{ maxWidth: 280 }}
+        style={{ maxWidth: 280, pointerEvents: 'auto' }}
       >
         {/* Lane guidance */}
         {nextLanes.length > 0 && (
@@ -159,6 +159,7 @@ export default function NavigationPanel({ route }: NavigationPanelProps) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 16 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+        style={{ pointerEvents: 'auto' }}
       >
         <div
           style={{
