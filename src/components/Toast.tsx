@@ -62,11 +62,11 @@ function ToastItemView({ message, onDismiss }: { message: string; onDismiss: () 
       onClick={onDismiss}
       className="pointer-events-auto cursor-pointer px-5 py-3 rounded-full text-sm font-medium"
       style={{
-        background: 'rgba(28, 28, 30, 0.95)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        color: '#fff',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'var(--mila-surface, #2a2a2a)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        color: 'var(--mila-text, #f5f5f7)',
+        border: '1px solid var(--mila-border, #333)',
         boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
         transform: visible ? 'translateY(0)' : 'translateY(12px)',
         opacity: visible ? 1 : 0,

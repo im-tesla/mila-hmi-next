@@ -20,11 +20,14 @@ export default function NavigationPanel({ route, gpsSpeed }: NavigationPanelProp
   const distanceNow = currentStep?.distance ?? 0;
   const nextInstruction = steps.length > 1 ? steps[1].instruction : '';
 
+  const textPrimary = 'var(--mila-text, #f5f5f7)';
+  const textMuted = 'var(--mila-textSecondary, #999)';
+
   const cardStyle: React.CSSProperties = {
-    background: 'rgba(20,20,20,0.85)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    border: '1px solid rgba(255,255,255,0.1)',
+    background: 'var(--mila-surface, #2a2a2a)',
+    backdropFilter: 'blur(24px)',
+    WebkitBackdropFilter: 'blur(24px)',
+    border: '1px solid var(--mila-border, #333)',
     borderRadius: 16,
     padding: '14px 16px',
   };
@@ -47,17 +50,17 @@ export default function NavigationPanel({ route, gpsSpeed }: NavigationPanelProp
           <span style={{ color: '#1a1a1a', fontSize: 22, fontWeight: 700, lineHeight: 1 }}>--</span>
         </div>
         <div>
-          <span style={{ color: '#fff', fontSize: 28, fontWeight: 600, lineHeight: 1 }}>
+          <span style={{ color: textPrimary, fontSize: 28, fontWeight: 600, lineHeight: 1 }}>
             {gpsSpeed !== null ? Math.round(gpsSpeed) : '--'}
           </span>
-          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}> km/h</span>
+          <span style={{ color: textMuted, fontSize: 13 }}> km/h</span>
         </div>
       </div>
 
-      {/* Lane guidance — road surface style */}
+      {/* Lane guidance — road surface style (road stays dark like asphalt) */}
       {nextLanes.length > 0 && (
         <div style={cardStyle}>
-          <div className="flex" style={{ gap: 0, background: '#2a2a2a', borderRadius: 10, overflow: 'hidden' }}>
+          <div className="flex" style={{ gap: 0, background: '#1e1e1e', borderRadius: 10, overflow: 'hidden' }}>
             {nextLanes.map((lane, i) => {
               const isActive = lane.active;
               const arrowColor = isActive ? '#fff' : 'rgba(255,255,255,0.2)';
@@ -67,7 +70,7 @@ export default function NavigationPanel({ route, gpsSpeed }: NavigationPanelProp
                     <div
                       style={{
                         width: 1,
-                        background: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.15) 0, rgba(255,255,255,0.15) 6px, transparent 6px, transparent 12px)',
+                        background: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.12) 0, rgba(255,255,255,0.12) 6px, transparent 6px, transparent 12px)',
                       }}
                     />
                   )}
@@ -91,7 +94,7 @@ export default function NavigationPanel({ route, gpsSpeed }: NavigationPanelProp
               <span
                 key={i}
                 style={{
-                  color: lane.active ? '#fff' : 'rgba(255,255,255,0.25)',
+                  color: lane.active ? textPrimary : textMuted,
                   fontSize: 10,
                   fontWeight: lane.active ? 500 : 400,
                   textAlign: 'center',
@@ -114,10 +117,10 @@ export default function NavigationPanel({ route, gpsSpeed }: NavigationPanelProp
           <MapPin size={18} stroke="rgba(74,158,255,0.8)" strokeWidth={2} />
         </div>
         <div className="min-w-0">
-          <div style={{ color: '#fff', fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ color: textPrimary, fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {instruction}
           </div>
-          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
+          <div style={{ color: textMuted, fontSize: 12 }}>
             {distanceNow >= 1000
               ? `${(distanceNow / 1000).toFixed(1)} km`
               : `${Math.round(distanceNow)} m`}
@@ -143,19 +146,19 @@ export default function NavigationPanel({ route, gpsSpeed }: NavigationPanelProp
                       width: 28,
                       height: 28,
                       borderRadius: 8,
-                      background: isCurrent ? 'rgba(74,158,255,0.2)' : 'rgba(255,255,255,0.05)',
+                      background: isCurrent ? 'rgba(74,158,255,0.2)' : 'color-mix(in srgb, var(--mila-textSecondary, #999) 10%, transparent)',
                     }}
                   >
                     <LaneArrow
                       indications={step.lanes?.[0]?.indications ?? ['straight']}
-                      color={isCurrent ? '#fff' : 'rgba(255,255,255,0.4)'}
+                      color={isCurrent ? textPrimary : textMuted}
                       size={14}
                     />
                   </div>
-                  <span style={{ color: isCurrent ? '#fff' : 'rgba(255,255,255,0.4)', fontSize: 13, flex: 1 }}>
+                  <span style={{ color: isCurrent ? textPrimary : textMuted, fontSize: 13, flex: 1 }}>
                     {step.instruction}
                   </span>
-                  <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11 }}>{dist}</span>
+                  <span style={{ color: textMuted, fontSize: 11 }}>{dist}</span>
                 </div>
               );
             })}

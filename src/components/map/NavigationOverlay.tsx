@@ -27,7 +27,6 @@ export default function NavigationOverlay({ map, rightPadding = 0 }: NavigationO
 
   const isRouting = route !== null;
 
-  // GPS speed tracking from geolocation
   useEffect(() => {
     if (!isRouting || !('geolocation' in navigator)) return;
     const watchId = navigator.geolocation.watchPosition(
@@ -72,9 +71,7 @@ export default function NavigationOverlay({ map, rightPadding = 0 }: NavigationO
     setGpsSpeed(null);
   }, []);
 
-  const handleClear = useCallback(() => {
-    // Search was cleared — stay idle
-  }, []);
+  const handleClear = useCallback(() => {}, []);
 
   const pois: SearchResult[] = selectedPoi ? [selectedPoi] : [];
 
@@ -88,7 +85,6 @@ export default function NavigationOverlay({ map, rightPadding = 0 }: NavigationO
         willChange: 'right',
       }}
     >
-      {/* Search bar — always visible unless routing */}
       {!isRouting && (
         <div style={{ pointerEvents: 'auto' }}>
           <SearchBar
@@ -99,42 +95,37 @@ export default function NavigationOverlay({ map, rightPadding = 0 }: NavigationO
         </div>
       )}
 
-      {/* Navigation panel — only during routing */}
       {isRouting && route && (
         <NavigationPanel route={route} gpsSpeed={gpsSpeed} />
       )}
 
-      {/* Map controls — always visible */}
       <MapControls map={map} />
-
-      {/* Route layer — handles polylines + POI markers */}
       <RouteLayer map={map} route={route} pois={pois} onPoiTap={handleSelectResult} />
 
-      {/* Loading indicator */}
       {routeLoading && (
         <div
           className="absolute bottom-8 left-0 right-0 text-center z-10"
           style={{ pointerEvents: 'auto' }}
         >
-          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <span className="text-sm" style={{ color: 'var(--mila-textSecondary, #999)' }}>
             Finding route…
           </span>
         </div>
       )}
 
-      {/* End route button — top right during routing */}
       {isRouting && (
         <div className="absolute top-5 right-4 z-10" style={{ pointerEvents: 'auto' }}>
           <button
             type="button"
             onClick={handleEndRoute}
-            className="px-4 py-3 rounded-2xl text-[14px] font-medium border-0 cursor-pointer transition-transform duration-[0.25s] ease-[cubic-bezier(0.16,1,0.3,1)]"
+            className="px-4 py-3 rounded-2xl text-[14px] font-medium border-0 cursor-pointer"
             style={{
-              background: 'rgba(20,20,20,0.85)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
+              background: 'var(--mila-surface, #2a2a2a)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
               color: '#FF453A',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid var(--mila-border, #333)',
+              transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)';

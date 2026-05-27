@@ -28,13 +28,15 @@ export default function MapControls({ map }: MapControlsProps) {
     }
   };
 
+  const iconColor = 'var(--mila-textSecondary, #999)';
   const btnClass =
-    'w-10 h-10 rounded-xl flex items-center justify-center border-0 cursor-pointer transition-transform duration-[0.25s] ease-[cubic-bezier(0.16,1,0.3,1)]';
+    'w-10 h-10 rounded-xl flex items-center justify-center border-0 cursor-pointer';
   const btnStyle: React.CSSProperties = {
-    background: 'rgba(20,20,20,0.85)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    border: '1px solid rgba(255,255,255,0.1)',
+    background: 'var(--mila-surface, #2a2a2a)',
+    backdropFilter: 'blur(24px)',
+    WebkitBackdropFilter: 'blur(24px)',
+    border: '1px solid var(--mila-border, #333)',
+    transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
   };
 
   return (
@@ -43,13 +45,13 @@ export default function MapControls({ map }: MapControlsProps) {
       style={{ top: '50%', right: 16, transform: 'translateY(-50%)' }}
     >
       <button type="button" className={btnClass} style={btnStyle} onClick={handleZoomIn} aria-label="Zoom in">
-        <Plus size={18} stroke="rgba(255,255,255,0.7)" strokeWidth={2} />
+        <Plus size={18} color={iconColor} strokeWidth={2} />
       </button>
       <button type="button" className={btnClass} style={btnStyle} onClick={handleZoomOut} aria-label="Zoom out">
-        <Minus size={18} stroke="rgba(255,255,255,0.7)" strokeWidth={2} />
+        <Minus size={18} color={iconColor} strokeWidth={2} />
       </button>
       <button type="button" className={btnClass} style={btnStyle} onClick={handleRecenter} aria-label="Recenter">
-        <Crosshair size={18} stroke="rgba(255,255,255,0.7)" strokeWidth={2} />
+        <Crosshair size={18} color={iconColor} strokeWidth={2} />
       </button>
     </div>
   );
