@@ -3,16 +3,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { RouteData } from '@/lib/mapbox-directions';
+import type { SimState } from '@/lib/simulate-route';
 import { LaneArrow, getLaneLabel } from './turnArrows';
 import { ChevronUp } from 'lucide-react';
-
-interface SimState {
-  position: [number, number];
-  speedKmh: number;
-  bearing: number;
-  remainingDistance: number;
-  remainingDuration: number;
-}
 
 interface NavigationPanelProps {
   route: RouteData;
@@ -26,13 +19,17 @@ function formatTime(ms: number): string {
 
 export default function NavigationPanel({ route, simState }: NavigationPanelProps) {
   const [expanded, setExpanded] = useState(false);
-  const steps = route.steps;
-  const currentStep = steps[0];
+
+  const isSim = simState != null;
+  const currentStep = isSim ? (simState.currentStep ?? route.steps[0]) : route.steps[0];
   const nextLanes = currentStep?.lanes?.filter((l) => l.valid) ?? [];
 
   const instruction = currentStep?.instruction ?? '';
-  const distanceNow = currentStep?.distance ?? 0;
-  const nextInstruction = steps.length > 1 ? steps[1].instruction : '';
+  const distanceNow = isSim ? simState.distanceToNext : (currentStep?.distance ?? 0);
+  const nextInstruction = isSim
+    ? (simState.nextStep?.instruction ?? '')
+    : (route.steps.length > 1 ? route.steps[1].instruction : '');
+  const allSteps = isSim ? simState.remainingSteps : route.steps;
 
   const textPrimary = 'var(--mila-text, #f5f5f7)';
   const textMuted = 'var(--mila-textSecondary, #999)';
@@ -43,12 +40,12 @@ export default function NavigationPanel({ route, simState }: NavigationPanelProp
     WebkitBackdropFilter: 'blur(24px)',
   };
 
-  const remainingDur = simState ? simState.remainingDuration : route.duration;
-  const remainingDist = simState ? simState.remainingDistance : route.distance;
+  const remainingDur = isSim ? simState.remainingDuration : route.duration;
+  const remainingDist = isSim ? simState.remainingDistance : route.distance;
   const arrivalTime = remainingDur > 0 ? formatTime(remainingDur) : '--:--';
   const remainingMin = remainingDur > 0 ? Math.round(remainingDur / 60) : '—';
   const remainingKm = remainingDist > 0 ? (remainingDist / 1000).toFixed(1) : '—';
-  const displaySpeed = simState ? simState.speedKmh : null;
+  const displaySpeed = isSim ? simState.speedKmh : null;
 
   return (
     <>
@@ -258,7 +255,7 @@ export default function NavigationPanel({ route, simState }: NavigationPanelProp
             }}
           >
             <div className="flex flex-col gap-2">
-              {steps.map((step, i) => {
+              {allSteps.map((step, i) => {
                 const dist = step.distance >= 1000
                   ? `${(step.distance / 1000).toFixed(1)} km`
                   : `${Math.round(step.distance)} m`;
