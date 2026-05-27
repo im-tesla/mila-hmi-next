@@ -4,15 +4,24 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Fuel, UtensilsCrossed, ShoppingBag, X, MapPin } from 'lucide-react';
 import { fetchSuggestions, fetchPOIs, type SearchResult } from '@/lib/mapbox-geocoding';
 import { useToast } from '@/components/Toast';
-import { useSetting } from '@/lib/settings';
 
 type ThemeColors = { bg: string; surface: string; text: string; textSecondary: string; accent: string; border: string };
 
-const THEME: Record<string, ThemeColors> = {
-  Dark:  { bg: '#1a1a1a', surface: '#2a2a2a', text: '#f5f5f7', textSecondary: '#999999', accent: '#818cf8', border: '#333333' },
-  Light: { bg: '#ffffff', surface: '#f5f5f7', text: '#1a1a1a', textSecondary: '#666666', accent: '#0d9488', border: '#e5e5e5' },
-  Cute:  { bg: '#fdf2f8', surface: '#fce7f3', text: '#831843', textSecondary: '#9d174d', accent: '#db2777', border: '#fbcfe8' },
-};
+const FALLBACK: ThemeColors = { bg: '#1a1a1a', surface: '#2a2a2a', text: '#f5f5f7', textSecondary: '#999999', accent: '#818cf8', border: '#333333' };
+
+function readThemeColors(): ThemeColors {
+  if (typeof document === 'undefined') return FALLBACK;
+  const s = getComputedStyle(document.documentElement);
+  const v = (name: string) => s.getPropertyValue(name).trim();
+  return {
+    bg: v('--mila-bg') || FALLBACK.bg,
+    surface: v('--mila-surface') || FALLBACK.surface,
+    text: v('--mila-text') || FALLBACK.text,
+    textSecondary: v('--mila-textSecondary') || FALLBACK.textSecondary,
+    accent: v('--mila-accent') || FALLBACK.accent,
+    border: v('--mila-border') || FALLBACK.border,
+  };
+}
 
 const QUICK_CHIPS = [
   { id: 'gas', label: 'Gas', Icon: Fuel, query: 'gas station' },
@@ -46,8 +55,14 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
   const abortRef = useRef<AbortController | null>(null);
   const { show: showToast } = useToast();
 
-  const [theme] = useSetting('theme');
-  const colors: ThemeColors = THEME[theme] ?? THEME.Dark;
+  const [colors, setColors] = useState<ThemeColors>(FALLBACK);
+
+  useEffect(() => {
+    setColors(readThemeColors());
+    const mo = new MutationObserver(() => setColors(readThemeColors()));
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+    return () => mo.disconnect();
+  }, []);
 
   const debouncedQuery = useDebounce(query.trim(), 300);
 
