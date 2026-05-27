@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Fuel, UtensilsCrossed, ShoppingBag, X, MapPin } from 'lucide-react';
+import { Search, Fuel, UtensilsCrossed, ShoppingBag, X, MapPin, Home, Briefcase } from 'lucide-react';
 import { fetchSuggestions, fetchPOIs, type SearchResult } from '@/lib/mapbox-geocoding';
 import { useToast } from '@/components/Toast';
 
@@ -22,6 +22,11 @@ function readThemeColors(): ThemeColors {
     border: v('--mila-border') || FALLBACK.border,
   };
 }
+
+const FAVORITES = [
+  { id: 'home', label: 'Home', Icon: Home },
+  { id: 'work', label: 'Work', Icon: Briefcase },
+] as const;
 
 const QUICK_CHIPS = [
   { id: 'gas', label: 'Gas', Icon: Fuel, query: 'gas station' },
@@ -105,6 +110,31 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
       fetchPOIs(chipQuery, getProximity(), { signal: controller.signal })
         .then((r) => {
           if (!controller.signal.aborted) setQuickResults(r);
+        })
+        .catch((err) => {
+          if (err.name === 'AbortError') return;
+          if (!controller.signal.aborted) showToast('Search is unavailable right now.');
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setLoading(false);
+        });
+    },
+    [getProximity, showToast],
+  );
+
+  const handleFavorite = useCallback(
+    (label: string) => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setLoading(true);
+      setQuickResults([]);
+
+      fetchSuggestions(label, getProximity(), { signal: controller.signal })
+        .then((r) => {
+          if (!controller.signal.aborted && r.length > 0) {
+            setQuickResults(r);
+          }
         })
         .catch((err) => {
           if (err.name === 'AbortError') return;
@@ -210,6 +240,35 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
               }}
             >
               <div className="flex justify-center gap-2.5">
+                {FAVORITES.map(({ id, label, Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => handleFavorite(label)}
+                    aria-label={label}
+                    className="flex items-center justify-center border-0 cursor-pointer"
+                    style={{
+                      width: 64, height: 64,
+                      background: colors.bg,
+                      borderRadius: 18,
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                      transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background var(--anim-duration, 0.2s) cubic-bezier(0.16, 1, 0.3, 1)',
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.06)'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
+                  >
+                    <div
+                      style={{
+                        width: 42, height: 42, borderRadius: 12,
+                        background: id === 'home' ? '#3b82f6' : '#6366f1',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icon size={22} color="#fff" strokeWidth={2.5} />
+                    </div>
+                  </button>
+                ))}
                 {QUICK_CHIPS.map(({ id, label, Icon, query: chipQuery }) => (
                   <button
                     key={id}
