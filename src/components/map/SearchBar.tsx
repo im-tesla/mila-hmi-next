@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Search, Fuel, UtensilsCrossed, ShoppingBag, X, MapPin, Home, Briefcase } from 'lucide-react';
 import { fetchSuggestions, fetchPOIs, type SearchResult } from '@/lib/mapbox-geocoding';
 import { useToast } from '@/components/Toast';
@@ -241,62 +242,56 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
         </div>
 
         {/* Quick chips */}
-        {expanded && hasQuickChips && (
-          <>
-            <div className="mx-5" style={{ borderTop: `1px solid ${colors.border}` }} />
-            <div
-              className="px-5 py-3"
-              style={{
-                animation: 'chipReveal 0.35s cubic-bezier(0.16, 1, 0.3, 1) both',
-              }}
+        <AnimatePresence>
+          {expanded && hasQuickChips && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             >
-              <div className="flex justify-center gap-3">
-                {FAVORITES.map(({ id, label, Icon }, i) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => handleFavorite(id, label)}
-                    aria-label={label}
-                    className="flex items-center justify-center border-0 cursor-pointer"
-                    style={{
-                      width: 56, height: 56,
-                      background: id === 'home' ? '#3b82f6' : '#6366f1',
-                      borderRadius: 16,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                      animation: `chipReveal 0.35s cubic-bezier(0.16, 1, 0.3, 1) ${i * 50}ms both`,
-                      transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                    }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.06)'; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
-                  >
-                    <Icon size={24} color="#fff" strokeWidth={2.5} />
-                  </button>
-                ))}
-                {QUICK_CHIPS.map(({ id, label, Icon, query: chipQuery }, i) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => handleQuickChip(id, chipQuery)}
-                    aria-label={label}
-                    className="flex items-center justify-center border-0 cursor-pointer"
-                    style={{
-                      width: 56, height: 56,
-                      background: chipColor(id),
-                      borderRadius: 16,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                      animation: `chipReveal 0.35s cubic-bezier(0.16, 1, 0.3, 1) ${(FAVORITES.length + i) * 50}ms both`,
-                      transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                    }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.06)'; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
-                  >
-                    <Icon size={24} color="#fff" strokeWidth={2.5} />
-                  </button>
-                ))}
+              <div className="mx-5" style={{ borderTop: `1px solid ${colors.border}` }} />
+              <div className="px-5 py-3">
+                <div className="flex justify-center gap-3">
+                  {[...FAVORITES, ...QUICK_CHIPS.map((c) => ({ ...c, isQuick: true }))].map((item, i) => {
+                    const isQuick = 'isQuick' in item;
+                    const id = item.id;
+                    const label = item.label;
+                    const Icon = item.Icon;
+                    return (
+                      <motion.button
+                        key={id}
+                        type="button"
+                        onClick={() => isQuick
+                          ? handleQuickChip(id, (item as typeof QUICK_CHIPS[number]).query)
+                          : handleFavorite(id, label)
+                        }
+                        aria-label={label}
+                        className="flex items-center justify-center border-0 cursor-pointer"
+                        initial={{ opacity: 0, scale: 0.8, y: -8 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.8, y: -8 }}
+                        transition={{ duration: 0.3, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+                        whileHover={{ scale: 1.06 }}
+                        whileTap={{ scale: 0.95 }}
+                        style={{
+                          width: 56, height: 56,
+                          background: isQuick
+                            ? chipColor(id)
+                            : id === 'home' ? '#3b82f6' : '#6366f1',
+                          borderRadius: 16,
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                        }}
+                      >
+                        <Icon size={24} color="#fff" strokeWidth={2.5} />
+                      </motion.button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          </>
+            </motion.div>
           )}
+        </AnimatePresence>
 
           {/* Divider */}
           {showDropdown && (query.trim() || loading || quickResults.length > 0) && (
@@ -304,11 +299,13 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
           )}
 
           {/* Autocomplete results */}
+          <AnimatePresence>
           {showDropdown && debouncedQuery && results.length > 0 && (
-            <div
-              style={{
-                animation: 'fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both',
-              }}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             >
               {results.map((r, i) => (
                 <button
@@ -329,15 +326,18 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
                   </span>
                 </button>
               ))}
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
 
           {/* Quick route POI results */}
+          <AnimatePresence>
           {showDropdown && quickResults.length > 0 && (
-            <div
-              style={{
-                animation: 'fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both',
-              }}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             >
               {quickResults.map((r, i) => (
                 <button
@@ -356,8 +356,9 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
                   </div>
                 </button>
               ))}
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
 
           {/* Loading state */}
           {loading && (
