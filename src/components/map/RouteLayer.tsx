@@ -24,26 +24,21 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
   const poiTapRef = useRef(onPoiTap);
   poiTapRef.current = onPoiTap;
 
-  // Route + destination layer
+  // Route + destination
   useEffect(() => {
     const m = map;
     if (!m) return;
 
     function add() {
-      // Always remove first to ensure clean state
       cleanupRoute(m!);
-
       if (!route) return;
       const coords = route.geometry.coordinates as [number, number][];
       if (coords.length === 0) return;
 
-      // Source
       m!.addSource(ROUTE_SRC, {
         type: 'geojson',
         data: { type: 'Feature', geometry: route.geometry, properties: {} },
       });
-
-      // Casing (wider glow) — added first so it's below
       m!.addLayer({
         id: ROUTE_CASING,
         type: 'line',
@@ -51,8 +46,6 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: { 'line-width': 8, 'line-color': '#4A9EFF', 'line-opacity': 0.25 },
       });
-
-      // Main route line — added second so it's on top of casing
       m!.addLayer({
         id: ROUTE_LINE,
         type: 'line',
@@ -61,7 +54,6 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
         paint: { 'line-width': 4, 'line-color': '#4A9EFF', 'line-opacity': 0.95 },
       });
 
-      // Destination marker
       const lastCoord = coords[coords.length - 1];
       m!.addSource(DEST_SRC, {
         type: 'geojson',
@@ -71,38 +63,32 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
         id: DEST_DOT,
         type: 'circle',
         source: DEST_SRC,
-        paint: {
-          'circle-radius': 10,
-          'circle-color': '#ef4444',
-          'circle-stroke-color': '#ffffff',
-          'circle-stroke-width': 3,
-        },
+        paint: { 'circle-radius': 10, 'circle-color': '#ef4444', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 },
       });
     }
 
-    if (m!.loaded()) {
-      add();
-    } else {
-      m!.once('style.load', add);
-      return () => { m!.off('style.load', add); cleanupRoute(m!); };
-    }
+    // Add now if ready, and also on every future style load (theme switches)
+    if (m.loaded()) add();
+    m.on('style.load', add);
 
-    return () => cleanupRoute(m!);
+    return () => {
+      m.off('style.load', add);
+      cleanupRoute(m!);
+    };
   }, [map, route]);
 
-  // POI markers layer
+  // POI markers
   useEffect(() => {
-    const mm = map;
-    if (!mm) return;
+    const m = map;
+    if (!m) return;
 
     function add() {
-      cleanupPois(mm!);
-
+      cleanupPois(m!);
       if (pois.length === 0) return;
 
       const poiMap = new Map(pois.map((p) => [p.id, p]));
 
-      mm!.addSource(POI_SRC, {
+      m!.addSource(POI_SRC, {
         type: 'geojson',
         data: {
           type: 'FeatureCollection',
@@ -113,17 +99,11 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
           })),
         },
       });
-
-      mm!.addLayer({
+      m!.addLayer({
         id: POI_DOTS,
         type: 'circle',
         source: POI_SRC,
-        paint: {
-          'circle-radius': 8,
-          'circle-color': '#ffffff',
-          'circle-stroke-color': '#6366f1',
-          'circle-stroke-width': 2.5,
-        },
+        paint: { 'circle-radius': 8, 'circle-color': '#ffffff', 'circle-stroke-color': '#6366f1', 'circle-stroke-width': 2.5 },
       });
 
       const clickHandler = (e: mapboxgl.MapMouseEvent) => {
@@ -133,19 +113,17 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
         const result = poiMap.get(id);
         if (result) poiTapRef.current(result);
       };
-
-      mm!.on('click', POI_DOTS, clickHandler);
-      (mm! as any)._milaPoiClickHandler = clickHandler;
+      m!.on('click', POI_DOTS, clickHandler);
+      (m! as any)._milaPoiClickHandler = clickHandler;
     }
 
-    if (mm!.loaded()) {
-      add();
-    } else {
-      mm!.once('style.load', add);
-      return () => { mm!.off('style.load', add); cleanupPois(mm!); };
-    }
+    if (m.loaded()) add();
+    m.on('style.load', add);
 
-    return () => cleanupPois(mm!);
+    return () => {
+      m.off('style.load', add);
+      cleanupPois(m!);
+    };
   }, [map, pois]);
 
   return null;
