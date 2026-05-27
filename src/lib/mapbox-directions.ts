@@ -32,8 +32,6 @@ export async function fetchRoute(
   url.searchParams.set('steps', 'true');
   url.searchParams.set('overview', 'full');
   url.searchParams.set('language', 'en');
-  url.searchParams.set('voice_units', 'metric');
-  url.searchParams.set('annotations', 'lanes,distance,duration');
   url.searchParams.set('alternatives', 'true');
 
   const res = await fetch(url.toString());
