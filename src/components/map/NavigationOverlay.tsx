@@ -163,9 +163,10 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
         </div>
       )}
 
-      {/* Preview: integrated destination card (bottom) */}
+      {/* Preview: destination card + Go button (bottom) */}
       {isPreview && selectedPoi && (
-        <div className="absolute bottom-8 left-0 right-0 flex justify-center z-10" style={{ pointerEvents: 'auto' }}>
+        <div className="absolute bottom-8 left-0 right-0 flex flex-col items-center gap-3 z-10" style={{ pointerEvents: 'auto' }}>
+          {/* Info card */}
           <div
             style={{
               background: 'var(--mila-surface, #2a2a2a)',
@@ -176,11 +177,10 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
               display: 'flex',
               alignItems: 'center',
               gap: 14,
-              padding: '10px 10px 10px 20px',
+              padding: '10px 14px 10px 18px',
               boxShadow: '0 2px 16px rgba(0,0,0,0.35)',
             }}
           >
-            {/* Destination info */}
             <button
               type="button"
               onClick={handleCancelPreview}
@@ -190,7 +190,7 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
               <X size={18} strokeWidth={2} />
             </button>
 
-            <div className="min-w-0" style={{ maxWidth: 280 }}>
+            <div className="min-w-0" style={{ maxWidth: 260 }}>
               <div className="text-[15px] font-medium truncate" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
                 {selectedPoi.name}
               </div>
@@ -209,34 +209,34 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
                 <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--mila-textSecondary, #999)' }}>km</div>
               </div>
             </div>
-
-            {/* Go button — integrated on the right */}
-            <button
-              type="button"
-              onClick={handleStartNavigation}
-              className="flex items-center gap-1.5 px-7 py-3 text-[16px] font-semibold border-0 cursor-pointer flex-shrink-0"
-              style={{
-                background: 'linear-gradient(135deg, var(--mila-accent, #818cf8), color-mix(in srgb, var(--mila-accent, #818cf8) 70%, #6366f1))',
-                color: '#fff',
-                borderRadius: 16,
-                boxShadow: '0 4px 20px rgba(129,140,248,0.35)',
-                transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-              }}
-              onMouseEnter={(e) => {
-                const t = e.currentTarget as HTMLElement;
-                t.style.transform = 'scale(1.04)';
-                t.style.boxShadow = '0 6px 28px rgba(129,140,248,0.5)';
-              }}
-              onMouseLeave={(e) => {
-                const t = e.currentTarget as HTMLElement;
-                t.style.transform = 'scale(1)';
-                t.style.boxShadow = '0 4px 20px rgba(129,140,248,0.35)';
-              }}
-            >
-              Go
-              <ArrowRight size={18} strokeWidth={2.5} />
-            </button>
           </div>
+
+          {/* Go button */}
+          <button
+            type="button"
+            onClick={handleStartNavigation}
+            className="flex items-center gap-2 px-10 py-3.5 text-[16px] font-semibold border-0 cursor-pointer"
+            style={{
+              background: 'linear-gradient(135deg, var(--mila-accent, #818cf8), color-mix(in srgb, var(--mila-accent, #818cf8) 70%, #6366f1))',
+              color: '#fff',
+              borderRadius: 50,
+              boxShadow: '0 4px 24px rgba(129,140,248,0.35)',
+              transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+            onMouseEnter={(e) => {
+              const t = e.currentTarget as HTMLElement;
+              t.style.transform = 'scale(1.04)';
+              t.style.boxShadow = '0 6px 32px rgba(129,140,248,0.5)';
+            }}
+            onMouseLeave={(e) => {
+              const t = e.currentTarget as HTMLElement;
+              t.style.transform = 'scale(1)';
+              t.style.boxShadow = '0 4px 24px rgba(129,140,248,0.35)';
+            }}
+          >
+            Go
+            <ArrowRight size={20} strokeWidth={2.5} />
+          </button>
         </div>
       )}
 
