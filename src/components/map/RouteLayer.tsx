@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import type { RouteData } from '@/lib/mapbox-directions';
 import type { SearchResult } from '@/lib/mapbox-geocoding';
@@ -22,7 +22,17 @@ const POI_DOTS = 'mila-poi-dots';
 export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerProps) {
   const poiTapRef = useRef(onPoiTap);
   poiTapRef.current = onPoiTap;
-  const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const destElRef = useRef<HTMLElement | null>(null);
+  const destCoordRef = useRef<[number, number] | null>(null);
+
+  const syncDestPosition = useCallback(() => {
+    const m = map;
+    const el = destElRef.current;
+    const coord = destCoordRef.current;
+    if (!m || !el || !coord) return;
+    const pt = m.project(coord);
+    el.style.transform = `translate(${pt.x}px, ${pt.y}px) translate(-50%, -50%)`;
+  }, [map]);
 
   // Route line + destination marker
   useEffect(() => {
@@ -31,7 +41,15 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
 
     function add() {
       cleanupRoute(m!);
-      if (!route) return;
+      if (!route) {
+        // No route — remove dest marker
+        if (destElRef.current) {
+          destElRef.current.remove();
+          destElRef.current = null;
+          destCoordRef.current = null;
+        }
+        return;
+      }
 
       const coords = route.geometry.coordinates as [number, number][];
       if (coords.length === 0) return;
@@ -55,29 +73,37 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
         paint: { 'line-width': 3, 'line-color': '#3B82F6', 'line-opacity': 1 },
       });
 
-      // Destination pin — same shared marker fn as user location marker
+      // Destination pin — positioned manually via map.project() to avoid Marker drift
       const lastCoord = coords[coords.length - 1] as [number, number];
+      destCoordRef.current = lastCoord;
 
-      if (destMarkerRef.current) {
-        destMarkerRef.current.setLngLat(lastCoord);
-      } else {
+      if (!destElRef.current) {
         const el = makeLocationMarker('red');
-        destMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: 'center' })
-          .setLngLat(lastCoord)
-          .addTo(m!);
+        el.style.position = 'absolute';
+        el.style.top = '0';
+        el.style.left = '0';
+        el.style.pointerEvents = 'none';
+        m!.getCanvasContainer().appendChild(el);
+        destElRef.current = el;
       }
+      syncDestPosition();
     }
 
     if (m.isStyleLoaded()) add();
     m.on('style.load', add);
+    m.on('move', syncDestPosition);
 
     return () => {
       m.off('style.load', add);
-      destMarkerRef.current?.remove();
-      destMarkerRef.current = null;
+      m.off('move', syncDestPosition);
+      if (destElRef.current) {
+        destElRef.current.remove();
+        destElRef.current = null;
+        destCoordRef.current = null;
+      }
       cleanupRoute(m!);
     };
-  }, [map, route]);
+  }, [map, route, syncDestPosition]);
 
   // POI search-result dots
   useEffect(() => {
