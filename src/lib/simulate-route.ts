@@ -52,6 +52,7 @@ export function useSimulatedDrive(
   map: mapboxgl.Map | null,
   route: RouteData | null,
   enabled: boolean,
+  userPosRef: React.RefObject<[number, number] | null>,
 ) {
   const [state, setState] = useState<SimState | null>(null);
   const speedRef = useRef(50);
@@ -175,14 +176,17 @@ export function useSimulatedDrive(
       };
       setState(s);
 
+      // Update user position marker for GPS dot
+      if (userPosRef) {
+        userPosRef.current = pos;
+      }
+
+      // Follow behind (GPS-style, not cinematic)
       if (speedRef.current > 0 && map) {
-        map.easeTo({
+        map.jumpTo({
           center: pos,
           bearing,
-          pitch: 55,
           zoom: 18,
-          duration: 1000,
-          easing: (t: number) => t,
         });
       }
 

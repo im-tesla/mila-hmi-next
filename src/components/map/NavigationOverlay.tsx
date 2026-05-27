@@ -36,7 +36,7 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
   const selectedRoute = routes[routeIndex] ?? null;
 
   const [simulating, setSimulating] = useState(false);
-  const simState = useSimulatedDrive(map, selectedRoute, navigating && simulating);
+  const simState = useSimulatedDrive(map, selectedRoute, navigating && simulating, userPosRef);
   const isRouting = navigating && selectedRoute !== null;
   const isPreview = hasRoutes && !navigating;
 
