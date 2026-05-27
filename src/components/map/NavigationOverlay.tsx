@@ -232,10 +232,10 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
                       {km} <span className="text-[11px] uppercase font-normal" style={{ color: 'var(--mila-textSecondary, #999)' }}>km</span>
                     </span>
                     {road && (
-                      <>
-                        <span className="text-[14px]" style={{ color: 'var(--mila-border, #555)' }}>·</span>
-                        <span className="text-[13px] truncate flex-1" style={{ color: 'var(--mila-textSecondary, #999)' }}>{road}</span>
-                      </>
+                      <span className="flex items-center gap-2 ml-auto min-w-0">
+                        <span className="text-[14px] flex-shrink-0" style={{ color: 'var(--mila-border, #555)' }}>·</span>
+                        <span className="text-[13px] truncate" style={{ color: 'var(--mila-textSecondary, #999)' }}>{road}</span>
+                      </span>
                     )}
                   </button>
                 );
