@@ -58,8 +58,7 @@ export async function fetchPOIs(
   url.searchParams.set('access_token', TOKEN);
   url.searchParams.set('country', 'PL');
   url.searchParams.set('proximity', `${proximity[0]},${proximity[1]}`);
-  url.searchParams.set('types', 'poi');
-  url.searchParams.set('limit', '10');
+  url.searchParams.set('limit', '15');
   url.searchParams.set('language', 'pl');
 
   const res = await fetch(url.toString(), { signal: options?.signal });

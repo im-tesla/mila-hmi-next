@@ -13,11 +13,21 @@ interface RouteLayerProps {
 }
 
 const ROUTE_SRC = 'mila-route-src';
+const ROUTE_CASING = 'mila-route-casing';
 const ROUTE_LINE = 'mila-route-line';
 const DEST_SRC = 'mila-dest-src';
 const DEST_DOT = 'mila-dest-dot';
 const POI_SRC = 'mila-poi-src';
 const POI_DOTS = 'mila-poi-dots';
+
+function firstSymbolLayerId(map: mapboxgl.Map): string | undefined {
+  const layers = map.getStyle().layers;
+  if (!layers) return undefined;
+  for (const layer of layers) {
+    if (layer.type === 'symbol') return layer.id;
+  }
+  return undefined;
+}
 
 export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerProps) {
   const poiTapRef = useRef(onPoiTap);
@@ -60,7 +70,11 @@ function setupRoute(map: mapboxgl.Map, route: RouteData | null) {
   if (!route) return;
 
   const coords = route.geometry.coordinates as [number, number][];
+  if (coords.length === 0) return;
 
+  const beforeId = firstSymbolLayerId(map);
+
+  // Route source
   if (!map.getSource(ROUTE_SRC)) {
     map.addSource(ROUTE_SRC, {
       type: 'geojson',
@@ -68,29 +82,29 @@ function setupRoute(map: mapboxgl.Map, route: RouteData | null) {
     });
   }
 
+  // Casing (wider, semi-transparent background for visibility)
+  if (!map.getLayer(ROUTE_CASING)) {
+    map.addLayer({
+      id: ROUTE_CASING,
+      type: 'line',
+      source: ROUTE_SRC,
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-width': 10, 'line-color': '#1e40af', 'line-opacity': 0.3 },
+    }, beforeId);
+  }
+
+  // Main route line (on top of casing)
   if (!map.getLayer(ROUTE_LINE)) {
     map.addLayer({
       id: ROUTE_LINE,
       type: 'line',
       source: ROUTE_SRC,
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-width': 6, 'line-color': '#4A9EFF', 'line-opacity': 0.85 },
-    });
+      paint: { 'line-width': 5, 'line-color': '#4A9EFF', 'line-opacity': 0.9 },
+    }, beforeId);
   }
 
-  if (coords.length > 0) {
-    if (route.distance > 500000) {
-      const [lng, lat] = coords[0];
-      map.flyTo({ center: [lng, lat], zoom: 8, duration: 800 });
-    } else {
-      const bounds = coords.reduce(
-        (b, [lng, lat]) => b.extend([lng, lat]),
-        new mapboxgl.LngLatBounds(coords[0], coords[0]),
-      );
-      map.fitBounds(bounds, { padding: 120, duration: 800 });
-    }
-  }
-
+  // Destination marker
   const lastCoord = coords[coords.length - 1];
   if (!map.getSource(DEST_SRC)) {
     map.addSource(DEST_SRC, {
@@ -103,13 +117,14 @@ function setupRoute(map: mapboxgl.Map, route: RouteData | null) {
       id: DEST_DOT,
       type: 'circle',
       source: DEST_SRC,
-      paint: { 'circle-radius': 8, 'circle-color': '#ef4444', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2 },
+      paint: { 'circle-radius': 10, 'circle-color': '#ef4444', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 },
     });
   }
 }
 
 function cleanupRoute(map: mapboxgl.Map) {
   try { if (map.getLayer(ROUTE_LINE)) map.removeLayer(ROUTE_LINE); } catch {}
+  try { if (map.getLayer(ROUTE_CASING)) map.removeLayer(ROUTE_CASING); } catch {}
   try { if (map.getSource(ROUTE_SRC)) map.removeSource(ROUTE_SRC); } catch {}
   try { if (map.getLayer(DEST_DOT)) map.removeLayer(DEST_DOT); } catch {}
   try { if (map.getSource(DEST_SRC)) map.removeSource(DEST_SRC); } catch {}

@@ -33,6 +33,8 @@ export async function fetchRoute(
   url.searchParams.set('overview', 'full');
   url.searchParams.set('language', 'en');
   url.searchParams.set('voice_units', 'metric');
+  url.searchParams.set('annotations', 'lanes,distance,duration');
+  url.searchParams.set('alternatives', 'true');
 
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`Directions request failed: ${res.status}`);

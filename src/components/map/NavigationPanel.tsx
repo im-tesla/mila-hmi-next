@@ -36,24 +36,26 @@ export default function NavigationPanel({ route, gpsSpeed }: NavigationPanelProp
     <div className="absolute top-5 left-4 z-10 flex flex-col gap-2.5 max-w-[260px]">
       {/* Speed card */}
       <div style={cardStyle} className="flex items-center gap-3">
-        <div
-          className="flex items-center justify-center flex-shrink-0"
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: '50%',
-            background: '#fff',
-            border: '4px solid #FF3B30',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-          }}
-        >
-          <span style={{ color: '#1a1a1a', fontSize: 22, fontWeight: 700, lineHeight: 1 }}>--</span>
-        </div>
         <div>
           <span style={{ color: textPrimary, fontSize: 28, fontWeight: 600, lineHeight: 1 }}>
             {gpsSpeed !== null ? Math.round(gpsSpeed) : '--'}
           </span>
           <span style={{ color: textMuted, fontSize: 13 }}> km/h</span>
+        </div>
+        <div className="ml-auto">
+          <div
+            className="flex items-center justify-center flex-shrink-0"
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: '50%',
+              background: '#fff',
+              border: '4px solid #FF3B30',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+            }}
+          >
+            <span style={{ color: '#1a1a1a', fontSize: 22, fontWeight: 700, lineHeight: 1 }}>--</span>
+          </div>
         </div>
       </div>
 
