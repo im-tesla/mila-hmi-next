@@ -25,7 +25,6 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
   const [gpsSpeed, setGpsSpeed] = useState<number | null>(null);
   const [navigating, setNavigating] = useState(false);
   const centerRef = useRef<[number, number]>(WARSAW);
-  const headingWatchRef = useRef<number | null>(null);
   const { show: showToast } = useToast();
 
   const isRouting = navigating && route !== null;
@@ -41,14 +40,12 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
             setGpsSpeed(pos.coords.speed * 3.6);
           }
           if (pos.coords.heading !== null && pos.coords.heading !== undefined) {
-            headingWatchRef.current = pos.coords.heading;
             map.easeTo({ bearing: pos.coords.heading, duration: 500 });
           }
         },
         () => {},
         { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 },
       );
-      headingWatchRef.current = watchId;
       return () => navigator.geolocation.clearWatch(watchId);
     }
   }, [navigating, map]);
@@ -69,7 +66,6 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
         const pos = getProximity();
         const r = await fetchRoute(pos, result.lngLat);
         setRoute(r);
-        // Fly to show the route overview
         if (map && r.geometry.coordinates.length > 0) {
           const coords = r.geometry.coordinates as [number, number][];
           const bounds = coords.reduce(
@@ -89,7 +85,6 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
 
   const handleStartNavigation = useCallback(() => {
     setNavigating(true);
-    // Recenter to current GPS position + set heading
     if (!map) return;
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -105,7 +100,6 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
           });
         },
         () => {
-          // Fallback: just zoom to route start
           if (route?.geometry.coordinates.length) {
             const coords = route.geometry.coordinates as [number, number][];
             map.easeTo({ center: coords[0], zoom: 15, duration: 1000 });
@@ -121,13 +115,21 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
     setSelectedPoi(null);
     setGpsSpeed(null);
     setNavigating(false);
-    // Reset map bearing
     if (map) map.easeTo({ bearing: 0, pitch: 0, duration: 500 });
   }, [map]);
+
+  const handleCancelPreview = useCallback(() => {
+    setRoute(null);
+    setSelectedPoi(null);
+  }, []);
 
   const handleClear = useCallback(() => {}, []);
 
   const pois: SearchResult[] = selectedPoi ? [selectedPoi] : [];
+
+  const etaMin = route ? Math.round(route.duration / 60) : 0;
+  const distKm = route ? (route.distance / 1000).toFixed(1) : '0';
+  const mainRoad = route?.steps[0]?.instruction ?? '';
 
   return (
     <div
@@ -139,14 +141,68 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
         willChange: 'right',
       }}
     >
-      {/* Search bar — visible when idle or preview */}
-      {!isRouting && (
+      {/* Search bar — only when idle (nothing selected) */}
+      {!route && (
         <div style={{ pointerEvents: 'auto' }}>
           <SearchBar
             getProximity={getProximity}
             onSelectResult={handleSelectResult}
             onClear={handleClear}
           />
+        </div>
+      )}
+
+      {/* Preview: destination pill at top + route summary */}
+      {isPreview && selectedPoi && (
+        <div className="absolute top-5 left-1/2 z-20" style={{ transform: 'translateX(-50%)', pointerEvents: 'auto' }}>
+          <div
+            style={{
+              background: 'var(--mila-surface, #2a2a2a)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+              border: '1px solid var(--mila-border, #333)',
+              borderRadius: 22,
+              padding: '14px 22px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 16,
+              minWidth: 380,
+            }}
+          >
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-medium truncate" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
+                {selectedPoi.name}
+              </div>
+              <div className="text-[12px] truncate mt-0.5" style={{ color: 'var(--mila-textSecondary, #999)' }}>
+                {selectedPoi.address}
+              </div>
+            </div>
+            <div className="flex items-center gap-4 flex-shrink-0">
+              <div className="text-center">
+                <div className="text-[15px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{etaMin} min</div>
+                <div className="text-[10px] uppercase" style={{ color: 'var(--mila-textSecondary, #999)' }}>ETA</div>
+              </div>
+              <div className="text-center">
+                <div className="text-[15px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{distKm} km</div>
+                <div className="text-[10px] uppercase" style={{ color: 'var(--mila-textSecondary, #999)' }}>Dist</div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCancelPreview}
+                className="border-0 bg-transparent cursor-pointer p-1"
+                style={{ color: 'var(--mila-textSecondary, #999)' }}
+              >
+                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+          {mainRoad && (
+            <div className="text-center mt-1.5">
+              <span className="text-[11px]" style={{ color: 'var(--mila-textSecondary, #999)' }}>
+                via {mainRoad.replace(/^Drive\s+/, '').replace(/^Head\s+/, '')}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -172,7 +228,7 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
         </div>
       )}
 
-      {/* Preview: route shown, "Go" button to start navigation */}
+      {/* Preview: "Go" button */}
       {isPreview && (
         <div className="absolute bottom-8 left-0 right-0 flex justify-center z-10" style={{ pointerEvents: 'auto' }}>
           <button
@@ -185,12 +241,8 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
               boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
               transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
-            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
           >
             Go
           </button>
@@ -212,12 +264,8 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
               border: '1px solid var(--mila-border, #333)',
               transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
-            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
           >
             End
           </button>
