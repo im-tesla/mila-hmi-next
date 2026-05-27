@@ -8,20 +8,35 @@ import { makeLocationMarker } from '@/lib/map-marker';
 
 interface RouteLayerProps {
   map: mapboxgl.Map | null;
-  route: RouteData | null;
+  routes: RouteData[];
+  routeIndex: number;
   pois: SearchResult[];
   onPoiTap: (result: SearchResult) => void;
+  onSelectAlternative: (index: number) => void;
 }
 
-const ROUTE_SRC = 'mila-route-src';
-const ROUTE_CASING = 'mila-route-casing';
-const ROUTE_LINE = 'mila-route-line';
+const ROUTE_SRC = (i: number) => `mila-route-src-${i}`;
+const ROUTE_CASING = (i: number) => `mila-route-casing-${i}`;
+const ROUTE_LINE = (i: number) => `mila-route-line-${i}`;
 const POI_SRC = 'mila-poi-src';
 const POI_DOTS = 'mila-poi-dots';
 
-export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerProps) {
+function addBelowBuildings(map: mapboxgl.Map, layer: mapboxgl.AnyLayer) {
+  const styleSpec = map.getStyle() as any;
+  const isStandard = Array.isArray(styleSpec?.imports) && styleSpec.imports.length > 0;
+  if (isStandard) {
+    map.addLayer({ ...layer, slot: 'middle' } as mapboxgl.AnyLayer);
+  } else {
+    const beforeId = map.getLayer('building-3d') ? 'building-3d' : undefined;
+    map.addLayer(layer, beforeId);
+  }
+}
+
+export default function RouteLayer({ map, routes, routeIndex, pois, onPoiTap, onSelectAlternative }: RouteLayerProps) {
   const poiTapRef = useRef(onPoiTap);
   poiTapRef.current = onPoiTap;
+  const altTapRef = useRef(onSelectAlternative);
+  altTapRef.current = onSelectAlternative;
   const destElRef = useRef<HTMLElement | null>(null);
   const destCoordRef = useRef<[number, number] | null>(null);
 
@@ -34,15 +49,14 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
     el.style.transform = `translate(${pt.x}px, ${pt.y}px) translate(-50%, -50%)`;
   }, [map]);
 
-  // Route line + destination marker
+  // Route lines + destination marker
   useEffect(() => {
     const m = map;
     if (!m) return;
 
     function add() {
-      cleanupRoute(m!);
-      if (!route) {
-        // No route — remove dest marker
+      cleanupRoutes(m!);
+      if (routes.length === 0) {
         if (destElRef.current) {
           destElRef.current.remove();
           destElRef.current = null;
@@ -51,30 +65,57 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
         return;
       }
 
-      const coords = route.geometry.coordinates as [number, number][];
-      if (coords.length === 0) return;
+      const selected = routes[routeIndex];
+      if (!selected) return;
 
-      m!.addSource(ROUTE_SRC, {
-        type: 'geojson',
-        data: { type: 'Feature', geometry: route.geometry, properties: {} },
-      });
-      addBelowBuildings(m!, {
-        id: ROUTE_CASING,
-        type: 'line',
-        source: ROUTE_SRC,
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-width': 5, 'line-color': '#1E40AF', 'line-opacity': 0.35 },
-      });
-      addBelowBuildings(m!, {
-        id: ROUTE_LINE,
-        type: 'line',
-        source: ROUTE_SRC,
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-width': 3, 'line-color': '#3B82F6', 'line-opacity': 1 },
+      routes.forEach((r, i) => {
+        const isSelected = i === routeIndex;
+        const coords = r.geometry.coordinates as [number, number][];
+        if (coords.length === 0) return;
+
+        m!.addSource(ROUTE_SRC(i), {
+          type: 'geojson',
+          data: { type: 'Feature', geometry: r.geometry, properties: { index: i } },
+        });
+
+        if (isSelected) {
+          addBelowBuildings(m!, {
+            id: ROUTE_CASING(i),
+            type: 'line',
+            source: ROUTE_SRC(i),
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: { 'line-width': 5, 'line-color': '#1E40AF', 'line-opacity': 0.35 },
+          });
+          addBelowBuildings(m!, {
+            id: ROUTE_LINE(i),
+            type: 'line',
+            source: ROUTE_SRC(i),
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: { 'line-width': 3, 'line-color': '#3B82F6', 'line-opacity': 1 },
+          });
+        } else {
+          addBelowBuildings(m!, {
+            id: ROUTE_LINE(i),
+            type: 'line',
+            source: ROUTE_SRC(i),
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: { 'line-width': 1.5, 'line-color': '#9CA3AF', 'line-opacity': 0.4 },
+          });
+
+          // Click handler for alternative routes
+          const altHandler = (e: mapboxgl.MapMouseEvent) => {
+            if (e.features?.[0]?.properties?.index === i) {
+              altTapRef.current(i);
+            }
+          };
+          m!.on('click', ROUTE_LINE(i), altHandler);
+          (m! as any)[`_milaAltClick_${i}`] = altHandler;
+        }
       });
 
-      // Destination pin — positioned manually via map.project() to avoid Marker drift
-      const lastCoord = coords[coords.length - 1] as [number, number];
+      // Destination marker on selected route
+      const selCoords = selected.geometry.coordinates as [number, number][];
+      const lastCoord = selCoords[selCoords.length - 1] as [number, number];
       destCoordRef.current = lastCoord;
 
       if (!destElRef.current) {
@@ -101,9 +142,9 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
         destElRef.current = null;
         destCoordRef.current = null;
       }
-      cleanupRoute(m!);
+      cleanupRoutes(m!);
     };
-  }, [map, route, syncDestPosition]);
+  }, [map, routes, routeIndex, syncDestPosition]);
 
   // POI search-result dots
   useEffect(() => {
@@ -112,7 +153,7 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
 
     function add() {
       cleanupPois(m!);
-      if (pois.length === 0 || route) return;
+      if (pois.length === 0 || routes.length > 0) return;
 
       const poiMap = new Map(pois.map((p) => [p.id, p]));
 
@@ -152,27 +193,22 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
       m.off('style.load', add);
       cleanupPois(m!);
     };
-  }, [map, pois, route]);
+  }, [map, pois, routes]);
 
   return null;
 }
 
-function addBelowBuildings(map: mapboxgl.Map, layer: mapboxgl.AnyLayer) {
-  const styleSpec = map.getStyle() as any;
-  const isStandard = Array.isArray(styleSpec?.imports) && styleSpec.imports.length > 0;
-
-  if (isStandard) {
-    map.addLayer({ ...layer, slot: 'middle' } as mapboxgl.AnyLayer);
-  } else {
-    const beforeId = map.getLayer('building-3d') ? 'building-3d' : undefined;
-    map.addLayer(layer, beforeId);
+function cleanupRoutes(map: mapboxgl.Map) {
+  for (let i = 0; i < 3; i++) {
+    const altHandler = (map as any)[`_milaAltClick_${i}`];
+    if (altHandler) {
+      map.off('click', ROUTE_LINE(i), altHandler);
+      delete (map as any)[`_milaAltClick_${i}`];
+    }
+    try { if (map.getLayer(ROUTE_LINE(i))) map.removeLayer(ROUTE_LINE(i)); } catch {}
+    try { if (map.getLayer(ROUTE_CASING(i))) map.removeLayer(ROUTE_CASING(i)); } catch {}
+    try { if (map.getSource(ROUTE_SRC(i))) map.removeSource(ROUTE_SRC(i)); } catch {}
   }
-}
-
-function cleanupRoute(map: mapboxgl.Map) {
-  try { if (map.getLayer(ROUTE_LINE)) map.removeLayer(ROUTE_LINE); } catch {}
-  try { if (map.getLayer(ROUTE_CASING)) map.removeLayer(ROUTE_CASING); } catch {}
-  try { if (map.getSource(ROUTE_SRC)) map.removeSource(ROUTE_SRC); } catch {}
 }
 
 function cleanupPois(map: mapboxgl.Map) {

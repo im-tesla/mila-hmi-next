@@ -2,12 +2,12 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import mapboxgl from 'mapbox-gl';
-import { ArrowRight, X } from 'lucide-react';
+import { ArrowRight, X, Circle } from 'lucide-react';
 import SearchBar from '@/components/map/SearchBar';
 import NavigationPanel from '@/components/map/NavigationPanel';
 import MapControls from '@/components/map/MapControls';
 import RouteLayer from '@/components/map/RouteLayer';
-import { fetchRoute, type RouteData } from '@/lib/mapbox-directions';
+import { fetchRoutes, type RouteData } from '@/lib/mapbox-directions';
 import type { SearchResult } from '@/lib/mapbox-geocoding';
 import { useToast } from '@/components/Toast';
 
@@ -21,7 +21,8 @@ interface NavigationOverlayProps {
 
 export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }: NavigationOverlayProps) {
   const [selectedPoi, setSelectedPoi] = useState<SearchResult | null>(null);
-  const [route, setRoute] = useState<RouteData | null>(null);
+  const [routes, setRoutes] = useState<RouteData[]>([]);
+  const [routeIndex, setRouteIndex] = useState(0);
   const [routeLoading, setRouteLoading] = useState(false);
   const [gpsSpeed, setGpsSpeed] = useState<number | null>(null);
   const [navigating, setNavigating] = useState(false);
@@ -29,8 +30,11 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
   const headingRef = useRef<number>(0);
   const { show: showToast } = useToast();
 
-  const isRouting = navigating && route !== null;
-  const isPreview = route !== null && !navigating;
+  const hasRoutes = routes.length > 0;
+  const selectedRoute = routes[routeIndex] ?? null;
+  const isRouting = navigating && selectedRoute !== null;
+  const isPreview = hasRoutes && !navigating;
+  const alternatives = routes.filter((_, i) => i !== routeIndex);
 
   // Always track heading so it's ready the moment Go is tapped
   useEffect(() => {
@@ -81,12 +85,13 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
       setSelectedPoi(result);
       setRouteLoading(true);
       setNavigating(false);
+      setRouteIndex(0);
       try {
         const pos = getProximity();
-        const r = await fetchRoute(pos, result.lngLat);
-        setRoute(r);
-        if (map && r.geometry.coordinates.length > 0) {
-          const coords = r.geometry.coordinates as [number, number][];
+        const all = await fetchRoutes(pos, result.lngLat);
+        setRoutes(all);
+        if (map && all.length > 0 && all[0].geometry.coordinates.length > 0) {
+          const coords = all[0].geometry.coordinates as [number, number][];
           const bounds = coords.reduce(
             (b, [lng, lat]) => b.extend([lng, lat]),
             new mapboxgl.LngLatBounds(coords[0], coords[0]),
@@ -102,14 +107,17 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
     [getProximity, map, showToast],
   );
 
+  const handleSelectAlternative = useCallback((i: number) => {
+    // i is the index in the full routes array (0 = fastest, 1 = first alt, 2 = second alt)
+    setRouteIndex(i);
+  }, []);
+
   const handleStartNavigation = useCallback(() => {
     setNavigating(true);
-    if (!map) return;
-    // userPosRef is tracked continuously by watchPosition — use it synchronously
-    // so the camera snaps immediately on tap, no async delay.
+    if (!map || !selectedRoute) return;
     const center: [number, number] | undefined =
       userPosRef.current ??
-      (route?.geometry.coordinates[0] as [number, number] | undefined);
+      (selectedRoute.geometry.coordinates[0] as [number, number] | undefined);
     if (!center) return;
     map.easeTo({
       center,
@@ -119,10 +127,11 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
       duration: 700,
       easing: (t: number) => 1 - Math.pow(1 - t, 3),
     });
-  }, [map, route, userPosRef]);
+  }, [map, selectedRoute, userPosRef]);
 
   const handleEndRoute = useCallback(() => {
-    setRoute(null);
+    setRoutes([]);
+    setRouteIndex(0);
     setSelectedPoi(null);
     setGpsSpeed(null);
     setNavigating(false);
@@ -130,7 +139,8 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
   }, [map]);
 
   const handleCancelPreview = useCallback(() => {
-    setRoute(null);
+    setRoutes([]);
+    setRouteIndex(0);
     setSelectedPoi(null);
   }, []);
 
@@ -138,10 +148,10 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
 
   const pois: SearchResult[] = selectedPoi ? [selectedPoi] : [];
 
-  const etaMin = route ? Math.round(route.duration / 60) : 0;
-  const distKm = route ? (route.distance / 1000).toFixed(1) : '0';
+  const etaMin = selectedRoute ? Math.round(selectedRoute.duration / 60) : 0;
+  const distKm = selectedRoute ? (selectedRoute.distance / 1000).toFixed(1) : '0';
   const mainRoad = (() => {
-    const named = route?.steps.filter((s) => s.name) ?? [];
+    const named = selectedRoute?.steps.filter((s) => s.name) ?? [];
     if (named.length === 0) return '';
     return named.reduce((a, b) => (b.distance > a.distance ? b : a)).name;
   })();
@@ -157,7 +167,7 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
       }}
     >
       {/* Search bar — only when idle (nothing selected) */}
-      {!route && (
+      {!hasRoutes && (
         <div style={{ pointerEvents: 'auto' }}>
           <SearchBar
             getProximity={getProximity}
@@ -168,7 +178,7 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
       )}
 
       {/* Preview: Apple Maps-style destination card (bottom) */}
-      {isPreview && selectedPoi && (
+      {isPreview && selectedPoi && selectedRoute && (
         <div
           className="absolute bottom-8 left-1/2 z-10"
           style={{ transform: 'translateX(-50%)', pointerEvents: 'auto', width: 360 }}
@@ -218,6 +228,53 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
               </div>
             </div>
 
+            {/* Alternative routes */}
+            {alternatives.length > 0 && (
+              <div style={{ padding: '0 18px 8px' }}>
+                <div style={{ borderTop: `1px solid var(--mila-border, #333)`, paddingTop: 8 }}>
+                  {alternatives.map((alt, i) => {
+                    const altIndex = routes.indexOf(alt);
+                    const altMin = Math.round(alt.duration / 60);
+                    const altKm = (alt.distance / 1000).toFixed(1);
+                    const altRoad = (() => {
+                      const named = alt.steps.filter((s) => s.name);
+                      if (named.length === 0) return '';
+                      return named.reduce((a, b) => (b.distance > a.distance ? b : a)).name;
+                    })();
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleSelectAlternative(altIndex)}
+                        className="flex items-center gap-2 w-full py-2 border-0 bg-transparent cursor-pointer rounded-xl"
+                        style={{
+                          transition: 'background 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
+                        }}
+                      >
+                        <Circle
+                          size={8}
+                          fill={altIndex === routeIndex ? 'var(--mila-accent, #818cf8)' : 'transparent'}
+                          color={altIndex === routeIndex ? 'var(--mila-accent, #818cf8)' : 'var(--mila-textSecondary, #999)'}
+                          strokeWidth={2}
+                        />
+                        <span className="text-[15px] font-medium" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
+                          {altMin} <span className="text-[11px] uppercase" style={{ color: 'var(--mila-textSecondary, #999)' }}>min</span>
+                        </span>
+                        <span className="text-[15px] font-medium" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
+                          {altKm} <span className="text-[11px] uppercase" style={{ color: 'var(--mila-textSecondary, #999)' }}>km</span>
+                        </span>
+                        {altRoad && (
+                          <span className="text-[12px] truncate" style={{ color: 'var(--mila-textSecondary, #999)' }}>
+                            via {altRoad}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Go button — full width, Apple Maps green style */}
             <div style={{ padding: '0 14px 14px' }}>
               <button
@@ -242,8 +299,8 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
       )}
 
       {/* Navigation panel — during active routing */}
-      {isRouting && route && (
-        <NavigationPanel route={route} gpsSpeed={gpsSpeed} />
+      {isRouting && selectedRoute && (
+        <NavigationPanel route={selectedRoute} gpsSpeed={gpsSpeed} />
       )}
 
       {/* Map controls */}
@@ -252,7 +309,7 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
       </div>
 
       {/* Route layer */}
-      <RouteLayer map={map} route={route} pois={pois} onPoiTap={handleSelectResult} />
+      <RouteLayer map={map} routes={routes} routeIndex={routeIndex} pois={pois} onPoiTap={handleSelectResult} onSelectAlternative={handleSelectAlternative} />
 
       {/* Loading */}
       {routeLoading && (

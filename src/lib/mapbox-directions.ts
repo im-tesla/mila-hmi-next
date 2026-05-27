@@ -21,27 +21,7 @@ export interface RouteData {
   distance: number;
 }
 
-export async function fetchRoute(
-  origin: [number, number],
-  destination: [number, number],
-): Promise<RouteData> {
-  const coords = `${origin[0]},${origin[1]};${destination[0]},${destination[1]}`;
-  const url = new URL(
-    `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}`,
-  );
-  url.searchParams.set('access_token', TOKEN);
-  url.searchParams.set('geometries', 'geojson');
-  url.searchParams.set('steps', 'true');
-  url.searchParams.set('overview', 'full');
-  url.searchParams.set('language', 'en');
-  url.searchParams.set('alternatives', 'true');
-  url.searchParams.set('annotations', 'maxspeed');
-
-  const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`Directions request failed: ${res.status}`);
-  const data = await res.json();
-
-  const route = data?.routes?.[0];
+function parseRoute(route: any): RouteData {
   const leg = route?.legs?.[0];
 
   type MaxspeedEntry = { speed: number; unit: string } | 'unknown' | 'none';
@@ -81,4 +61,36 @@ export async function fetchRoute(
     duration: route?.duration ?? 0,
     distance: route?.distance ?? 0,
   };
+}
+
+export async function fetchRoutes(
+  origin: [number, number],
+  destination: [number, number],
+): Promise<RouteData[]> {
+  const coords = `${origin[0]},${origin[1]};${destination[0]},${destination[1]}`;
+  const url = new URL(
+    `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}`,
+  );
+  url.searchParams.set('access_token', TOKEN);
+  url.searchParams.set('geometries', 'geojson');
+  url.searchParams.set('steps', 'true');
+  url.searchParams.set('overview', 'full');
+  url.searchParams.set('language', 'en');
+  url.searchParams.set('alternatives', 'true');
+  url.searchParams.set('annotations', 'maxspeed');
+
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error(`Directions request failed: ${res.status}`);
+  const data = await res.json();
+
+  return (data?.routes ?? []).map(parseRoute);
+}
+
+/** @deprecated use fetchRoutes instead */
+export async function fetchRoute(
+  origin: [number, number],
+  destination: [number, number],
+): Promise<RouteData> {
+  const routes = await fetchRoutes(origin, destination);
+  return routes[0] ?? { geometry: { type: 'LineString', coordinates: [] }, steps: [], duration: 0, distance: 0 };
 }
