@@ -163,80 +163,70 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
         </div>
       )}
 
-      {/* Preview: destination card + Go button (bottom) */}
+      {/* Preview: Apple Maps-style destination card (bottom) */}
       {isPreview && selectedPoi && (
-        <div className="absolute bottom-8 left-0 right-0 flex flex-col items-center gap-3 z-10" style={{ pointerEvents: 'auto' }}>
-          {/* Info card */}
+        <div
+          className="absolute bottom-8 left-1/2 z-10"
+          style={{ transform: 'translateX(-50%)', pointerEvents: 'auto', width: 360 }}
+        >
           <div
             style={{
               background: 'var(--mila-surface, #2a2a2a)',
               backdropFilter: 'blur(24px)',
               WebkitBackdropFilter: 'blur(24px)',
-              border: '1px solid var(--mila-border, #333)',
-              borderRadius: 22,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 14,
-              padding: '10px 14px 10px 18px',
+              borderRadius: 20,
               boxShadow: '0 2px 16px rgba(0,0,0,0.35)',
+              overflow: 'hidden',
             }}
           >
-            <button
-              type="button"
-              onClick={handleCancelPreview}
-              className="border-0 bg-transparent cursor-pointer p-1 flex-shrink-0"
-              style={{ color: 'var(--mila-textSecondary, #999)' }}
-            >
-              <X size={18} strokeWidth={2} />
-            </button>
-
-            <div className="min-w-0" style={{ maxWidth: 260 }}>
-              <div className="text-[15px] font-medium truncate" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
-                {selectedPoi.name}
+            {/* Header: close + destination */}
+            <div style={{ padding: '16px 18px 12px' }}>
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-[17px] font-semibold truncate flex-1 min-w-0" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
+                  {selectedPoi.name}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCancelPreview}
+                  className="border-0 bg-transparent cursor-pointer p-1 flex-shrink-0 ml-2"
+                  style={{ color: 'var(--mila-textSecondary, #999)' }}
+                >
+                  <X size={20} strokeWidth={2} />
+                </button>
               </div>
-              <div className="text-[12px] truncate" style={{ color: 'var(--mila-textSecondary, #999)' }}>
-                {selectedPoi.address}{mainRoad ? ` · via ${mainRoad.replace(/^Drive\s+/, '').replace(/^Head\s+/, '')}` : ''}
+              <div className="flex items-center gap-2 text-[14px]" style={{ color: 'var(--mila-textSecondary, #999)' }}>
+                <span>{etaMin} min</span>
+                <span style={{ color: 'var(--mila-border, #555)' }}>·</span>
+                <span>{distKm} km</span>
+                {mainRoad && (
+                  <>
+                    <span style={{ color: 'var(--mila-border, #555)' }}>·</span>
+                    <span className="truncate">{mainRoad.replace(/^Drive\s+/, '').replace(/^Head\s+/, '')}</span>
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="flex items-center gap-3 flex-shrink-0" style={{ borderLeft: `1px solid var(--mila-border, #333)`, paddingLeft: 14 }}>
-              <div className="text-center">
-                <div className="text-[16px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{etaMin}</div>
-                <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--mila-textSecondary, #999)' }}>min</div>
-              </div>
-              <div className="text-center">
-                <div className="text-[16px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{distKm}</div>
-                <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--mila-textSecondary, #999)' }}>km</div>
-              </div>
+            {/* Go button — full width, Apple Maps green style */}
+            <div style={{ padding: '0 14px 14px' }}>
+              <button
+                type="button"
+                onClick={handleStartNavigation}
+                className="flex items-center justify-center gap-2 w-full py-3.5 text-[17px] font-semibold border-0 cursor-pointer"
+                style={{
+                  background: '#34c759',
+                  color: '#fff',
+                  borderRadius: 14,
+                  transition: 'background 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.02)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
+              >
+                Go
+                <ArrowRight size={20} strokeWidth={2.5} />
+              </button>
             </div>
           </div>
-
-          {/* Go button */}
-          <button
-            type="button"
-            onClick={handleStartNavigation}
-            className="flex items-center gap-2 px-10 py-3.5 text-[16px] font-semibold border-0 cursor-pointer"
-            style={{
-              background: 'linear-gradient(135deg, var(--mila-accent, #818cf8), color-mix(in srgb, var(--mila-accent, #818cf8) 70%, #6366f1))',
-              color: '#fff',
-              borderRadius: 50,
-              boxShadow: '0 4px 24px rgba(129,140,248,0.35)',
-              transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-            }}
-            onMouseEnter={(e) => {
-              const t = e.currentTarget as HTMLElement;
-              t.style.transform = 'scale(1.04)';
-              t.style.boxShadow = '0 6px 32px rgba(129,140,248,0.5)';
-            }}
-            onMouseLeave={(e) => {
-              const t = e.currentTarget as HTMLElement;
-              t.style.transform = 'scale(1)';
-              t.style.boxShadow = '0 4px 24px rgba(129,140,248,0.35)';
-            }}
-          >
-            Go
-            <ArrowRight size={20} strokeWidth={2.5} />
-          </button>
         </div>
       )}
 
