@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import MapClient from '@/components/MapClient';
 import SettingsPanel from '@/components/SettingsPanel';
 import Slider from '@/components/Slider';
@@ -489,25 +490,31 @@ function HomeInner() {
             <VolumeIcon size={32} level={volume} />
           </button>
 
-          <div
-            ref={volumeRef}
-            className={`absolute left-1/2 -translate-x-1/2 z-20 transition-[opacity,transform] duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-              showVolume ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' : 'opacity-0 scale-95 translate-y-2 pointer-events-none'
-            }`}
-            style={{ bottom: 'calc(100% + 10px)', willChange: 'transform, opacity' }}
-          >
-            <div
-              className="py-4 px-3 rounded-3xl"
-              style={{
-                background: 'var(--mila-surface, #fff)',
-                boxShadow: '0 8px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)',
-                border: '1px solid var(--mila-border, #e5e5e5)',
-                width: 44,
-              }}
-            >
-              <Slider value={volume} onChange={setVolume} className="w-full h-40" />
-            </div>
-          </div>
+          <AnimatePresence>
+            {showVolume && (
+              <motion.div
+                ref={volumeRef}
+                className="absolute left-1/2 -translate-x-1/2 z-20"
+                style={{ bottom: 'calc(100% + 10px)' }}
+                initial={{ opacity: 0, scale: 0.95, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 8 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <div
+                  className="py-4 px-3 rounded-3xl"
+                  style={{
+                    background: 'var(--mila-surface, #fff)',
+                    boxShadow: '0 8px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)',
+                    border: '1px solid var(--mila-border, #e5e5e5)',
+                    width: 44,
+                  }}
+                >
+                  <Slider value={volume} onChange={setVolume} className="w-full h-40" />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {!servicesDisabled && (() => {
@@ -517,21 +524,26 @@ function HomeInner() {
           const Icon = iconMap[svc];
           return (
             <div key={svc} className="relative" ref={isHeld ? holdRef : undefined}>
-              {isHeld && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); handleFullscreen(svc); }}
-                  className="absolute -top-11 left-1/2 -translate-x-1/2 whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold shadow-lg touch-none select-none z-10"
-                  style={{
-                    background: 'var(--mila-surface, #fff)',
-                    color: 'var(--mila-text, #333)',
-                    border: '1px solid var(--mila-border, #e5e5e5)',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
-                  }}
-                >
-                  Fullscreen
-                </button>
-              )}
+              <AnimatePresence>
+                {isHeld && (
+                  <motion.button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleFullscreen(svc); }}
+                    className="absolute -top-11 left-1/2 -translate-x-1/2 whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold shadow-lg touch-none select-none z-10"
+                    style={{
+                      background: 'var(--mila-surface, #fff)',
+                      color: 'var(--mila-text, #333)',
+                      border: '1px solid var(--mila-border, #e5e5e5)',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+                    }}
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                  >
+                    Fullscreen
+                  </motion.button>
+                )}
+              </AnimatePresence>
               <button
                 type="button"
                 onPointerDown={(e) => { e.preventDefault(); handlePointerDown(svc); }}
@@ -585,21 +597,26 @@ function HomeInner() {
           const Icon = iconMap[svc];
           return (
             <div key={svc} className="relative" ref={isHeld ? holdRef : undefined}>
-              {isHeld && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); handleFullscreen(svc); }}
-                  className="absolute -top-11 left-1/2 -translate-x-1/2 whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold shadow-lg touch-none select-none z-10"
-                  style={{
-                    background: 'var(--mila-surface, #fff)',
-                    color: 'var(--mila-text, #333)',
-                    border: '1px solid var(--mila-border, #e5e5e5)',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
-                  }}
-                >
-                  Fullscreen
-                </button>
-              )}
+              <AnimatePresence>
+                {isHeld && (
+                  <motion.button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleFullscreen(svc); }}
+                    className="absolute -top-11 left-1/2 -translate-x-1/2 whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold shadow-lg touch-none select-none z-10"
+                    style={{
+                      background: 'var(--mila-surface, #fff)',
+                      color: 'var(--mila-text, #333)',
+                      border: '1px solid var(--mila-border, #e5e5e5)',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+                    }}
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                  >
+                    Fullscreen
+                  </motion.button>
+                )}
+              </AnimatePresence>
               <button
                 type="button"
                 onPointerDown={(e) => { e.preventDefault(); handlePointerDown(svc); }}
@@ -626,20 +643,23 @@ function HomeInner() {
           );
         })()}
 
-        <div
-            ref={appLibraryRef}
-            className="absolute left-1/2 -translate-x-1/2 z-30 rounded-2xl p-6"
-            style={{
-              bottom: 'calc(100% + 8px)',
-              width: 520,
-              background: 'var(--mila-surface, #f5f5f7)',
-              border: '1px solid var(--mila-border, #e5e5e5)',
-              boxShadow: '0 16px 48px rgba(0,0,0,0.16), 0 4px 16px rgba(0,0,0,0.08)',
-              opacity: showAppLibrary ? 1 : 0,
-              transition: 'opacity 350ms cubic-bezier(0.16, 1, 0.3, 1)',
-              pointerEvents: showAppLibrary ? 'auto' : 'none',
-            }}
-          >
+        <AnimatePresence>
+          {showAppLibrary && (
+            <motion.div
+              ref={appLibraryRef}
+              className="absolute left-1/2 -translate-x-1/2 z-30 rounded-2xl p-6"
+              style={{
+                bottom: 'calc(100% + 8px)',
+                width: 520,
+                background: 'var(--mila-surface, #f5f5f7)',
+                border: '1px solid var(--mila-border, #e5e5e5)',
+                boxShadow: '0 16px 48px rgba(0,0,0,0.16), 0 4px 16px rgba(0,0,0,0.08)',
+              }}
+              initial={{ opacity: 0, y: 12, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.96 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold" style={{ color: 'var(--mila-text, #333)' }}>App Library</h3>
               <button
@@ -659,21 +679,26 @@ function HomeInner() {
                 const Icon = iconMap[svc];
                 return (
                   <div key={svc} className="relative" ref={isHeld ? holdRef : undefined}>
-                    {isHeld && (
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); handleFullscreen(svc); }}
-                        className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold shadow-lg touch-none select-none z-10"
-                        style={{
-                          background: 'var(--mila-surface, #fff)',
-                          color: 'var(--mila-text, #333)',
-                          border: '1px solid var(--mila-border, #e5e5e5)',
-                          boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
-                        }}
-                      >
-                        Fullscreen
-                      </button>
-                    )}
+                    <AnimatePresence>
+                      {isHeld && (
+                        <motion.button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleFullscreen(svc); }}
+                          className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold shadow-lg touch-none select-none z-10"
+                          style={{
+                            background: 'var(--mila-surface, #fff)',
+                            color: 'var(--mila-text, #333)',
+                            border: '1px solid var(--mila-border, #e5e5e5)',
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+                          }}
+                          initial={{ opacity: 0, y: -8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                        >
+                          Fullscreen
+                        </motion.button>
+                      )}
+                    </AnimatePresence>
                     <button
                       type="button"
                       onPointerDown={(e) => { e.preventDefault(); handlePointerDown(svc); }}
@@ -701,38 +726,43 @@ function HomeInner() {
                 const color = app.color || getServiceColor(app.id);
                 return (
                   <div key={app.id} className="relative" ref={isHeld ? holdRef : undefined}>
-                    {isHeld && (
-                      <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); handleFullscreen(app.id); }}
-                          className="whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold shadow-lg touch-none select-none"
-                          style={{
-                            background: 'var(--mila-surface, #fff)',
-                            color: 'var(--mila-text, #333)',
-                            border: '1px solid var(--mila-border, #e5e5e5)',
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
-                          }}
-                        >
-                          Fullscreen
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeCustomApp(app.id);
-                            if (active === app.id) setActive(null);
-                            if (fullscreen === app.id) setFullscreen(null);
-                            if (visibleContent === app.id) setVisibleContent(null);
-                            if (holdService === app.id) setHoldService(null);
-                          }}
-                          className="whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold shadow-lg touch-none select-none"
-                          style={{ background: '#ef4444', color: '#fff', boxShadow: '0 4px 20px rgba(239,68,68,0.25)' }}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    )}
+                    <AnimatePresence>
+                      {isHeld && (
+                        <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                          <motion.button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleFullscreen(app.id); }}
+                            className="whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold shadow-lg touch-none select-none"
+                            style={{
+                              background: 'var(--mila-surface, #fff)',
+                              color: 'var(--mila-text, #333)',
+                              border: '1px solid var(--mila-border, #e5e5e5)',
+                              boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+                            }}
+                            initial={{ opacity: 0, y: -8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                          >
+                            Fullscreen
+                          </motion.button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeCustomApp(app.id);
+                              if (active === app.id) setActive(null);
+                              if (fullscreen === app.id) setFullscreen(null);
+                              if (visibleContent === app.id) setVisibleContent(null);
+                              if (holdService === app.id) setHoldService(null);
+                            }}
+                            className="whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold shadow-lg touch-none select-none"
+                            style={{ background: '#ef4444', color: '#fff', boxShadow: '0 4px 20px rgba(239,68,68,0.25)' }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </AnimatePresence>
                     <button
                       type="button"
                       onPointerDown={(e) => { e.preventDefault(); handlePointerDown(app.id); }}
@@ -781,7 +811,9 @@ function HomeInner() {
                 <span className="text-xs font-medium" style={{ color: 'var(--mila-textSecondary, #999)' }}>Add App</span>
               </button>
             </div>
-          </div>
+          </motion.div>
+          )}
+        </AnimatePresence>
 
 
         <div className="absolute right-6 top-1/2 -translate-y-1/2">
@@ -808,32 +840,38 @@ function HomeInner() {
         </div>
       </div>
 
-      <div className="fixed left-0 right-0 bottom-24 flex justify-center z-50 pointer-events-none overflow-visible">
-        <div
-          className={`flex items-center gap-4 px-6 py-4 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.12)]
-            transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
-            ${showRestore ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'}`}
-          style={{ background: 'var(--mila-surface, #fff)' }}
-        >
-          <span className="text-base font-medium" style={{ color: 'var(--mila-text, #333)' }}>Extension detected — restore services?</span>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="px-5 py-2 text-white rounded-xl text-sm font-medium transition-colors"
-            style={{ background: 'var(--mila-accent, #0d9488)' }}
-          >
-            Refresh
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowRestore(false)}
-            className="px-5 py-2 rounded-xl text-sm font-medium transition-colors"
-            style={{ background: 'var(--mila-surface, #f3f4f6)', color: 'var(--mila-textSecondary, #666)' }}
-          >
-            Dismiss
-          </button>
-        </div>
-      </div>
+      <AnimatePresence>
+        {showRestore && (
+          <div className="fixed left-0 right-0 bottom-24 flex justify-center z-50 pointer-events-none overflow-visible">
+            <motion.div
+              className="flex items-center gap-4 px-6 py-4 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.12)] pointer-events-auto"
+              style={{ background: 'var(--mila-surface, #fff)' }}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 12 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <span className="text-base font-medium" style={{ color: 'var(--mila-text, #333)' }}>Extension detected — restore services?</span>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="px-5 py-2 text-white rounded-xl text-sm font-medium transition-colors"
+                style={{ background: 'var(--mila-accent, #0d9488)' }}
+              >
+                Refresh
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowRestore(false)}
+                className="px-5 py-2 rounded-xl text-sm font-medium transition-colors"
+                style={{ background: 'var(--mila-surface, #f3f4f6)', color: 'var(--mila-textSecondary, #666)' }}
+              >
+                Dismiss
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {!splashDone && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center" style={{ background: 'var(--mila-bg, #1a1a1a)' }}>
@@ -871,21 +909,31 @@ function HomeInner() {
         </div>
       )}
 
-      {showAddModal && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.35)' }}
-          onClick={() => setShowAddModal(false)}
-        >
-          <div
-            className="rounded-2xl p-8 w-[440px] flex flex-col gap-5"
-            style={{
-              background: 'var(--mila-bg, #1a1a1a)',
-              border: '1px solid var(--mila-border, #333333)',
-              boxShadow: '0 24px 80px rgba(0,0,0,0.4)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
+      <AnimatePresence>
+        {showAddModal && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-[100] flex items-center justify-center"
+              style={{ background: 'rgba(0,0,0,0.35)' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAddModal(false)}
+            />
+            <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
+              <motion.div
+                className="rounded-2xl p-8 w-[440px] flex flex-col gap-5 pointer-events-auto"
+                style={{
+                  background: 'var(--mila-bg, #1a1a1a)',
+                  border: '1px solid var(--mila-border, #333333)',
+                  boxShadow: '0 24px 80px rgba(0,0,0,0.4)',
+                }}
+                initial={{ opacity: 0, scale: 0.92, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 20 }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                onClick={(e) => e.stopPropagation()}
+              >
             <h2 className="text-xl font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
               Add Application
             </h2>
@@ -966,9 +1014,11 @@ function HomeInner() {
                 Add
               </button>
             </div>
-          </div>
-        </div>
-      )}
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
