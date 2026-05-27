@@ -163,9 +163,9 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
         </div>
       )}
 
-      {/* Preview: destination pill at top + route summary */}
+      {/* Preview: integrated destination card (bottom) */}
       {isPreview && selectedPoi && (
-        <div className="absolute top-5 left-1/2 z-20" style={{ transform: 'translateX(-50%)', pointerEvents: 'auto' }}>
+        <div className="absolute bottom-8 left-0 right-0 flex justify-center z-10" style={{ pointerEvents: 'auto' }}>
           <div
             style={{
               background: 'var(--mila-surface, #2a2a2a)',
@@ -173,47 +173,70 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
               WebkitBackdropFilter: 'blur(24px)',
               border: '1px solid var(--mila-border, #333)',
               borderRadius: 22,
-              padding: '16px 24px',
               display: 'flex',
               alignItems: 'center',
-              gap: 16,
-              minWidth: 400,
+              gap: 14,
+              padding: '10px 10px 10px 20px',
+              boxShadow: '0 2px 16px rgba(0,0,0,0.35)',
             }}
           >
-            <div className="flex-1 min-w-0">
-              <div className="text-[16px] font-medium truncate" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
+            {/* Destination info */}
+            <button
+              type="button"
+              onClick={handleCancelPreview}
+              className="border-0 bg-transparent cursor-pointer p-1 flex-shrink-0"
+              style={{ color: 'var(--mila-textSecondary, #999)' }}
+            >
+              <X size={18} strokeWidth={2} />
+            </button>
+
+            <div className="min-w-0" style={{ maxWidth: 280 }}>
+              <div className="text-[15px] font-medium truncate" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
                 {selectedPoi.name}
               </div>
-              <div className="text-[13px] truncate mt-0.5" style={{ color: 'var(--mila-textSecondary, #999)' }}>
-                {selectedPoi.address}
+              <div className="text-[12px] truncate" style={{ color: 'var(--mila-textSecondary, #999)' }}>
+                {selectedPoi.address}{mainRoad ? ` · via ${mainRoad.replace(/^Drive\s+/, '').replace(/^Head\s+/, '')}` : ''}
               </div>
             </div>
-            <div className="flex items-center gap-4 flex-shrink-0">
+
+            <div className="flex items-center gap-3 flex-shrink-0" style={{ borderLeft: `1px solid var(--mila-border, #333)`, paddingLeft: 14 }}>
               <div className="text-center">
-                <div className="text-[17px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{etaMin} min</div>
-                <div className="text-[11px] uppercase" style={{ color: 'var(--mila-textSecondary, #999)' }}>ETA</div>
+                <div className="text-[16px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{etaMin}</div>
+                <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--mila-textSecondary, #999)' }}>min</div>
               </div>
               <div className="text-center">
-                <div className="text-[17px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{distKm} km</div>
-                <div className="text-[11px] uppercase" style={{ color: 'var(--mila-textSecondary, #999)' }}>Dist</div>
+                <div className="text-[16px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{distKm}</div>
+                <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--mila-textSecondary, #999)' }}>km</div>
               </div>
-              <button
-                type="button"
-                onClick={handleCancelPreview}
-                className="border-0 bg-transparent cursor-pointer p-1"
-                style={{ color: 'var(--mila-textSecondary, #999)' }}
-              >
-                <X size={20} strokeWidth={2} />
-              </button>
             </div>
+
+            {/* Go button — integrated on the right */}
+            <button
+              type="button"
+              onClick={handleStartNavigation}
+              className="flex items-center gap-1.5 px-7 py-3 text-[16px] font-semibold border-0 cursor-pointer flex-shrink-0"
+              style={{
+                background: 'linear-gradient(135deg, var(--mila-accent, #818cf8), color-mix(in srgb, var(--mila-accent, #818cf8) 70%, #6366f1))',
+                color: '#fff',
+                borderRadius: 16,
+                boxShadow: '0 4px 20px rgba(129,140,248,0.35)',
+                transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+              }}
+              onMouseEnter={(e) => {
+                const t = e.currentTarget as HTMLElement;
+                t.style.transform = 'scale(1.04)';
+                t.style.boxShadow = '0 6px 28px rgba(129,140,248,0.5)';
+              }}
+              onMouseLeave={(e) => {
+                const t = e.currentTarget as HTMLElement;
+                t.style.transform = 'scale(1)';
+                t.style.boxShadow = '0 4px 20px rgba(129,140,248,0.35)';
+              }}
+            >
+              Go
+              <ArrowRight size={18} strokeWidth={2.5} />
+            </button>
           </div>
-          {mainRoad && (
-            <div className="text-center mt-1.5">
-              <span className="text-[12px]" style={{ color: 'var(--mila-textSecondary, #999)' }}>
-                via {mainRoad.replace(/^Drive\s+/, '').replace(/^Head\s+/, '')}
-              </span>
-            </div>
-          )}
         </div>
       )}
 
@@ -236,37 +259,6 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
           <span className="text-base" style={{ color: 'var(--mila-textSecondary, #999)' }}>
             Finding route…
           </span>
-        </div>
-      )}
-
-      {/* Preview: "Go" button */}
-      {isPreview && (
-        <div className="absolute bottom-8 left-0 right-0 flex justify-center z-10" style={{ pointerEvents: 'auto' }}>
-          <button
-            type="button"
-            onClick={handleStartNavigation}
-            className="flex items-center gap-2 px-10 py-4 text-[17px] font-semibold border-0 cursor-pointer"
-            style={{
-              background: 'linear-gradient(135deg, var(--mila-accent, #818cf8), color-mix(in srgb, var(--mila-accent, #818cf8) 70%, #6366f1))',
-              color: '#fff',
-              borderRadius: 50,
-              boxShadow: '0 4px 28px rgba(129,140,248,0.4), 0 1px 3px rgba(0,0,0,0.2)',
-              transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-            }}
-            onMouseEnter={(e) => {
-              const t = e.currentTarget as HTMLElement;
-              t.style.transform = 'scale(1.04)';
-              t.style.boxShadow = '0 6px 36px rgba(129,140,248,0.55), 0 2px 6px rgba(0,0,0,0.25)';
-            }}
-            onMouseLeave={(e) => {
-              const t = e.currentTarget as HTMLElement;
-              t.style.transform = 'scale(1)';
-              t.style.boxShadow = '0 4px 28px rgba(129,140,248,0.4), 0 1px 3px rgba(0,0,0,0.2)';
-            }}
-          >
-            Go
-            <ArrowRight size={20} strokeWidth={2.5} />
-          </button>
         </div>
       )}
 
