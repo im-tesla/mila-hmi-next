@@ -514,69 +514,8 @@ function LightsTab() {
 
 // ─── Navigation tab ──────────────────────────────────────────────
 
-const ORIENTATIONS = ['North up', 'Heading up', 'Follow GPS'] as const;
-const UNITS = ['km', 'mi'] as const;
-
 function NavigationTab() {
-  const [voiceGuidance, setVoiceGuidance] = useState(true);
-  const [mapOrientation, setMapOrientation] = useState<(typeof ORIENTATIONS)[number]>('Heading up');
-  const [avoidTolls, setAvoidTolls] = useState(true);
-  const [avoidHighways, setAvoidHighways] = useState(false);
-  const [autoZoom, setAutoZoom] = useState(true);
-  const [speedAlerts, setSpeedAlerts] = useState(true);
-  const [units, setUnits] = useState<(typeof UNITS)[number]>('km');
-  const [trafficLayer, setTrafficLayer] = useState(true);
-
-  const [ducking, setDucking] = useSetting('mbDucking');
-  const [roadLabels, setRoadLabels] = useSetting('mbRoadLabels');
-  const [poiLabels, setPoiLabels] = useSetting('mbPoiLabels');
-  const [transitLabels, setTransitLabels] = useSetting('mbTransitLabels');
-  const [buildings3d, setBuildings3d] = useSetting('mb3dBuildings');
-  const [policeAlerts, setPoliceAlerts] = useSetting('mbPoliceAlerts');
-
-  return (
-    <div className="space-y-8">
-      <section>
-        <SectionHeader>Voice guidance</SectionHeader>
-        <div className="space-y-1">
-          <Toggle label="Voice guidance" value={voiceGuidance} onChange={setVoiceGuidance} />
-          <Toggle label="Lower media while speaking" value={ducking} onChange={setDucking} />
-        </div>
-      </section>
-
-      <section>
-        <SectionHeader>Map orientation</SectionHeader>
-        <ChoiceGroup options={ORIENTATIONS} value={mapOrientation} onChange={setMapOrientation} />
-      </section>
-
-      <section>
-        <SectionHeader>Route</SectionHeader>
-        <div className="space-y-2">
-          <Toggle label="Avoid tolls" value={avoidTolls} onChange={setAvoidTolls} />
-          <Toggle label="Avoid highways" value={avoidHighways} onChange={setAvoidHighways} />
-          <Toggle label="Auto-zoom at turns" value={autoZoom} onChange={setAutoZoom} />
-          <Toggle label="Speed alerts" value={speedAlerts} onChange={setSpeedAlerts} />
-          <Toggle label="Traffic layer" value={trafficLayer} onChange={setTrafficLayer} />
-        </div>
-      </section>
-
-      <section>
-        <SectionHeader>Units</SectionHeader>
-        <ChoiceGroup options={UNITS} value={units} onChange={setUnits} formatLabel={(u) => u === 'km' ? 'Kilometers' : 'Miles'} />
-      </section>
-
-      <section>
-        <SectionHeader>Map config</SectionHeader>
-        <div className="space-y-2">
-          <Toggle label="Road labels" value={roadLabels} onChange={setRoadLabels} />
-          <Toggle label="POI labels" value={poiLabels} onChange={setPoiLabels} />
-          <Toggle label="Transit labels" value={transitLabels} onChange={setTransitLabels} />
-          <Toggle label="3D buildings" value={buildings3d} onChange={setBuildings3d} />
-          <Toggle label="Police alerts" value={policeAlerts} onChange={setPoliceAlerts} />
-        </div>
-      </section>
-    </div>
-  );
+  return <PlaceholderTab name="Navigation" />;
 }
 
 // ─── Locks tab ───────────────────────────────────────────────────
