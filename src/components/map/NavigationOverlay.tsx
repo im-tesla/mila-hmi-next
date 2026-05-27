@@ -225,11 +225,11 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
                       transition: 'border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                   >
-                    <span className="text-[16px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
-                      {min} <span className="text-[11px] uppercase font-normal" style={{ color: 'var(--mila-textSecondary, #999)' }}>min</span>
+                    <span className="text-[16px] font-semibold tabular-nums" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
+                      {min}<span className="text-[12px] font-medium ml-0.5" style={{ color: 'var(--mila-textSecondary, #999)' }}>min</span>
                     </span>
-                    <span className="text-[16px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
-                      {km} <span className="text-[11px] uppercase font-normal" style={{ color: 'var(--mila-textSecondary, #999)' }}>km</span>
+                    <span className="text-[16px] font-semibold tabular-nums" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
+                      {km}<span className="text-[12px] font-medium ml-0.5" style={{ color: 'var(--mila-textSecondary, #999)' }}>km</span>
                     </span>
                     {road && (
                       <span className="flex items-center gap-2 ml-auto min-w-0">
