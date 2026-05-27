@@ -144,7 +144,26 @@ export default function RouteLayer({ map, routes, routeIndex, pois, onPoiTap, on
       }
       cleanupRoutes(m!);
     };
-  }, [map, routes, routeIndex, syncDestPosition]);
+  }, [map, routes, syncDestPosition]);
+
+  // Smoothly swap selected route styling when routeIndex changes
+  useEffect(() => {
+    const m = map;
+    if (!m || routes.length === 0) return;
+
+    routes.forEach((_r, i) => {
+      const isSelected = i === routeIndex;
+      try {
+        if (m.getLayer(ROUTE_LINE(i))) {
+          m.setPaintProperty(ROUTE_LINE(i), 'line-width', isSelected ? 3 : 2);
+          m.setPaintProperty(ROUTE_LINE(i), 'line-opacity', isSelected ? 1 : 0.5);
+        }
+        if (m.getLayer(ROUTE_CASING(i))) {
+          m.setPaintProperty(ROUTE_CASING(i), 'line-opacity', isSelected ? 0.35 : 0);
+        }
+      } catch {}
+    });
+  }, [map, routeIndex, routes]);
 
   // POI search-result dots
   useEffect(() => {

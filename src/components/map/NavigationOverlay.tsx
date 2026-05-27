@@ -172,14 +172,16 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
       {/* Preview: route selection card */}
       <AnimatePresence>
       {isPreview && selectedPoi && selectedRoute && (
-        <motion.div
+        <div
           className="absolute bottom-8 left-1/2 z-10"
-          initial={{ opacity: 0, y: 24, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 24, scale: 0.96 }}
-          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           style={{ transform: 'translateX(-50%)', pointerEvents: 'auto', width: 380 }}
         >
+          <motion.div
+            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 24, scale: 0.96 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          >
           <div
             style={{
               background: 'var(--mila-surface, #2a2a2a)',
@@ -268,7 +270,8 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
               </motion.button>
             </div>
           </div>
-        </motion.div>
+          </motion.div>
+        </div>
       )}
       </AnimatePresence>
 
