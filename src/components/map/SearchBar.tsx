@@ -161,7 +161,7 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
     <div ref={containerRef} className="absolute top-5 left-1/2 z-20" style={{ transform: 'translateX(-50%)' }}>
       <div
         style={{
-          width: expanded ? 460 : 400,
+          width: expanded ? 400 : 360,
           borderRadius: 18,
           overflow: 'hidden',
           background: colors.surface,
@@ -204,12 +204,12 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
           <>
             <div className="mx-5" style={{ borderTop: `1px solid ${colors.border}` }} />
             <div
-              className="px-5 pt-3.5 pb-2"
+              className="px-5 py-3"
               style={{
                 animation: 'fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both',
               }}
             >
-              <div className="flex gap-3">
+              <div className="flex justify-center gap-2.5">
                 {QUICK_CHIPS.map(({ id, label, Icon, query: chipQuery }) => (
                   <button
                     key={id}
