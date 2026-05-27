@@ -4,10 +4,9 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { getSetting, subscribeSetting } from '@/lib/settings';
+import { makeLocationMarker } from '@/lib/map-marker';
 import NavigationOverlay from '@/components/map/NavigationOverlay';
 
-const USER_SOURCE = 'mila-user';
-const USER_LAYER = 'mila-user-dot';
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? '';
 
 type ConfigurableMap = mapboxgl.Map & {
@@ -58,30 +57,26 @@ export default function Map({ rightPadding = 0 }: { rightPadding?: number }) {
     let userLngLat: [number, number] | null = null;
     let geoWatchId: number | null = null;
     let didFitOnce = false;
-
-    const userGeoJSON = (): GeoJSON.Feature<GeoJSON.Point> => ({
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: userLngLat ?? [0, 0] },
-      properties: {},
-    });
+    let userMarker: mapboxgl.Marker | null = null;
 
     const applyUserPosition = () => {
       if (!userLngLat) return;
-      const src = map.getSource(USER_SOURCE) as mapboxgl.GeoJSONSource | undefined;
-      if (src) { src.setData(userGeoJSON()); return; }
-      map.addSource(USER_SOURCE, { type: 'geojson', data: userGeoJSON() });
-      map.addLayer({
-        id: USER_LAYER,
-        type: 'circle',
-        source: USER_SOURCE,
-        paint: {
-          'circle-radius': 7,
-          'circle-color': '#0d9488',
-          'circle-stroke-color': '#ffffff',
-          'circle-stroke-width': 2,
-          'circle-pitch-alignment': 'map',
-        },
-      });
+      if (userMarker) { userMarker.setLngLat(userLngLat); return; }
+
+      // Inject heading-dot keyframes once
+      if (!document.getElementById('mila-user-styles')) {
+        const s = document.createElement('style');
+        s.id = 'mila-user-styles';
+        s.textContent =
+          '@keyframes mila-user-ping{0%{transform:translate(-50%,-50%) scale(0.5);opacity:0.7}100%{transform:translate(-50%,-50%) scale(2);opacity:0}}';
+        document.head.appendChild(s);
+      }
+
+      const el = makeLocationMarker('teal');
+
+      userMarker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+        .setLngLat(userLngLat)
+        .addTo(map);
     };
 
     // ─── Map config ─────────────────────────────────────────────
@@ -116,7 +111,7 @@ export default function Map({ rightPadding = 0 }: { rightPadding?: number }) {
     const onStyleReady = () => {
       lastConfig = null;
       applyConfig();
-      applyUserPosition();
+      // DOM Markers survive style changes — no need to re-add
     };
 
     map.once('style.load', () => {
@@ -157,6 +152,7 @@ export default function Map({ rightPadding = 0 }: { rightPadding?: number }) {
       unsubStyle();
       for (const u of unsubs) u();
       if (geoWatchId !== null) navigator.geolocation.clearWatch(geoWatchId);
+      userMarker?.remove();
       map.remove();
       mapRef.current = null;
     };

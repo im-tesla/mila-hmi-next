@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import type { RouteData } from '@/lib/mapbox-directions';
 import type { SearchResult } from '@/lib/mapbox-geocoding';
+import { makeLocationMarker } from '@/lib/map-marker';
 
 interface RouteLayerProps {
   map: mapboxgl.Map | null;
@@ -54,28 +55,13 @@ export default function RouteLayer({ map, route, pois, onPoiTap }: RouteLayerPro
         paint: { 'line-width': 3, 'line-color': '#3B82F6', 'line-opacity': 1 },
       });
 
-      // Destination pin — same approach as user location marker in Map.tsx
+      // Destination pin — same shared marker fn as user location marker
       const lastCoord = coords[coords.length - 1] as [number, number];
 
       if (destMarkerRef.current) {
         destMarkerRef.current.setLngLat(lastCoord);
       } else {
-        const el = document.createElement('div');
-        el.style.cssText = 'position:relative;width:18px;height:18px;display:flex;align-items:center;justify-content:center';
-
-        const pulse = document.createElement('div');
-        pulse.style.cssText =
-          'position:absolute;width:38px;height:38px;border-radius:50%;background:rgba(239,68,68,0.18);' +
-          'top:50%;left:50%;animation:mila-user-ping 2.8s ease-out infinite;pointer-events:none';
-
-        const dot = document.createElement('div');
-        dot.style.cssText =
-          'width:16px;height:16px;border-radius:50%;background:#ef4444;border:3px solid #fff;' +
-          'box-shadow:0 2px 10px rgba(0,0,0,0.3);position:relative;z-index:1';
-
-        el.appendChild(pulse);
-        el.appendChild(dot);
-
+        const el = makeLocationMarker('red');
         destMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: 'center' })
           .setLngLat(lastCoord)
           .addTo(m!);
