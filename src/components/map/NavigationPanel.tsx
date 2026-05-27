@@ -34,9 +34,9 @@ export default function NavigationPanel({ route }: NavigationPanelProps) {
     WebkitBackdropFilter: 'blur(24px)',
   };
 
-  const arrivalTime = formatTime(route.duration);
-  const remainingMin = Math.round(route.duration / 60);
-  const remainingKm = (route.distance / 1000).toFixed(1);
+  const arrivalTime = route.duration > 0 ? formatTime(route.duration) : '--:--';
+  const remainingMin = route.duration > 0 ? Math.round(route.duration / 60) : '—';
+  const remainingKm = route.distance > 0 ? (route.distance / 1000).toFixed(1) : '—';
 
   return (
     <>
@@ -50,59 +50,63 @@ export default function NavigationPanel({ route }: NavigationPanelProps) {
         style={{ maxWidth: 280, pointerEvents: 'auto' }}
       >
         {/* Lane guidance */}
-        {nextLanes.length > 0 && (
-          <div
-            style={{
-              ...cardBg,
-              borderRadius: 16,
-              padding: '12px 14px',
-              marginBottom: 8,
-            }}
-          >
-            <div className="flex" style={{ gap: 0, background: '#1e1e1e', borderRadius: 10, overflow: 'hidden' }}>
-              {nextLanes.map((lane, i) => {
-                const isActive = lane.active;
-                const arrowColor = isActive ? '#fff' : 'rgba(255,255,255,0.2)';
-                return (
-                  <div key={i} className="flex">
-                    {i > 0 && (
-                      <div style={{
-                        width: 1,
-                        background: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.12) 0, rgba(255,255,255,0.12) 6px, transparent 6px, transparent 12px)',
-                      }} />
-                    )}
-                    <div
-                      className="flex items-center justify-center"
-                      style={{
-                        width: 48, height: 64,
-                        background: isActive ? 'rgba(74,158,255,0.15)' : 'transparent',
-                        position: 'relative',
-                      }}
-                    >
-                      <LaneArrow indications={lane.indications} color={arrowColor} size={22} />
-                    </div>
+        <div
+          style={{
+            ...cardBg,
+            borderRadius: 16,
+            padding: '12px 14px',
+            marginBottom: 8,
+          }}
+        >
+          <div className="flex" style={{ gap: 0, background: '#1e1e1e', borderRadius: 10, overflow: 'hidden', minHeight: 64 }}>
+            {nextLanes.length > 0 ? nextLanes.map((lane, i) => {
+              const isActive = lane.active;
+              const arrowColor = isActive ? '#fff' : 'rgba(255,255,255,0.2)';
+              return (
+                <div key={i} className="flex">
+                  {i > 0 && (
+                    <div style={{
+                      width: 1,
+                      background: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.12) 0, rgba(255,255,255,0.12) 6px, transparent 6px, transparent 12px)',
+                    }} />
+                  )}
+                  <div
+                    className="flex items-center justify-center"
+                    style={{
+                      width: 48, height: 64,
+                      background: isActive ? 'rgba(74,158,255,0.15)' : 'transparent',
+                      position: 'relative',
+                    }}
+                  >
+                    <LaneArrow indications={lane.indications} color={arrowColor} size={22} />
                   </div>
-                );
-              })}
-            </div>
-            <div className="flex justify-between mt-1.5">
-              {nextLanes.map((lane, i) => (
-                <span
-                  key={i}
-                  style={{
-                    color: lane.active ? textPrimary : textMuted,
-                    fontSize: 10,
-                    fontWeight: lane.active ? 500 : 400,
-                    textAlign: 'center',
-                    flex: 1,
-                  }}
-                >
-                  {getLaneLabel(lane.indications)}
-                </span>
-              ))}
-            </div>
+                </div>
+              );
+            }) : (
+              <div className="flex items-center justify-center w-full" style={{ color: textMuted, fontSize: 12 }}>
+                Lane guidance unavailable
+              </div>
+            )}
           </div>
-        )}
+          <div className="flex justify-between mt-1.5">
+            {nextLanes.length > 0 ? nextLanes.map((lane, i) => (
+              <span
+                key={i}
+                style={{
+                  color: lane.active ? textPrimary : textMuted,
+                  fontSize: 10,
+                  fontWeight: lane.active ? 500 : 400,
+                  textAlign: 'center',
+                  flex: 1,
+                }}
+              >
+                {getLaneLabel(lane.indications)}
+              </span>
+            )) : (
+              <span style={{ color: textMuted, fontSize: 10, textAlign: 'center', flex: 1 }}>—</span>
+            )}
+          </div>
+        </div>
 
         {/* Instruction card */}
         <div
@@ -110,46 +114,46 @@ export default function NavigationPanel({ route }: NavigationPanelProps) {
         >
           {/* Distance — hero metric */}
           <div style={{ color: textPrimary, fontSize: 36, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.02em' }}>
-            {distanceNow >= 1000
-              ? `${(distanceNow / 1000).toFixed(1)} km`
-              : `${Math.round(distanceNow)} m`}
+            {distanceNow > 0
+              ? (distanceNow >= 1000
+                ? `${(distanceNow / 1000).toFixed(1)} km`
+                : `${Math.round(distanceNow)} m`)
+              : '—'}
           </div>
 
           {/* Current instruction */}
           <div style={{
-            color: textPrimary, fontSize: 16, fontWeight: 500,
+            color: instruction ? textPrimary : textMuted, fontSize: 16, fontWeight: 500,
             marginTop: 6,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
-            {instruction}
+            {instruction || 'Starting route…'}
           </div>
 
           {/* Next instruction preview */}
-          {nextInstruction && (
-            <div style={{ color: textMuted, fontSize: 13, marginTop: 4 }}>
-              Then {nextInstruction.charAt(0).toLowerCase() + nextInstruction.slice(1)}
-            </div>
-          )}
+          <div style={{ color: textMuted, fontSize: 13, marginTop: 4 }}>
+            {nextInstruction
+              ? `Then ${nextInstruction.charAt(0).toLowerCase() + nextInstruction.slice(1)}`
+              : 'Continue on current road'}
+          </div>
         </div>
 
         {/* Speed limit — EU circle */}
-        {currentStep?.maxspeedKmh != null && (
-          <div style={{ marginTop: 8, alignSelf: 'flex-start' }}>
-            <div
-              className="flex items-center justify-center"
-              style={{
-                width: 56, height: 56, borderRadius: '50%',
-                background: '#fff',
-                border: '5px solid #FF3B30',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-              }}
-            >
-              <span style={{ color: '#1a1a1a', fontSize: 22, fontWeight: 700, lineHeight: 1 }}>
-                {currentStep.maxspeedKmh}
-              </span>
-            </div>
+        <div style={{ marginTop: 8, alignSelf: 'flex-start' }}>
+          <div
+            className="flex items-center justify-center"
+            style={{
+              width: 56, height: 56, borderRadius: '50%',
+              background: '#fff',
+              border: currentStep?.maxspeedKmh != null ? '5px solid #FF3B30' : '5px solid var(--mila-border, #333)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+            }}
+          >
+            <span style={{ color: '#1a1a1a', fontSize: 22, fontWeight: 700, lineHeight: 1 }}>
+              {currentStep?.maxspeedKmh != null ? currentStep.maxspeedKmh : '—'}
+            </span>
           </div>
-        )}
+        </div>
       </motion.div>
 
       {/* ─── Trip Progress Capsule (bottom-left) ─── */}
