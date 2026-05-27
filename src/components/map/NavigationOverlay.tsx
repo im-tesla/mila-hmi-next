@@ -34,7 +34,6 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
   const selectedRoute = routes[routeIndex] ?? null;
   const isRouting = navigating && selectedRoute !== null;
   const isPreview = hasRoutes && !navigating;
-  const alternatives = routes.filter((_, i) => i !== routeIndex);
 
   // Always track heading so it's ready the moment Go is tapped
   useEffect(() => {
@@ -148,14 +147,6 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
 
   const pois: SearchResult[] = selectedPoi ? [selectedPoi] : [];
 
-  const etaMin = selectedRoute ? Math.round(selectedRoute.duration / 60) : 0;
-  const distKm = selectedRoute ? (selectedRoute.distance / 1000).toFixed(1) : '0';
-  const mainRoad = (() => {
-    const named = selectedRoute?.steps.filter((s) => s.name) ?? [];
-    if (named.length === 0) return '';
-    return named.reduce((a, b) => (b.distance > a.distance ? b : a)).name;
-  })();
-
   return (
     <div
       className="absolute top-0 bottom-0 left-0"
@@ -177,36 +168,26 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
         </div>
       )}
 
-      {/* Preview: automotive cockpit route card */}
+      {/* Preview: route selection card */}
       {isPreview && selectedPoi && selectedRoute && (
         <div
           className="absolute bottom-8 left-1/2 z-10"
-          style={{ transform: 'translateX(-50%)', pointerEvents: 'auto', width: 340 }}
+          style={{ transform: 'translateX(-50%)', pointerEvents: 'auto', width: 380 }}
         >
           <div
             style={{
               background: 'var(--mila-surface, #2a2a2a)',
               backdropFilter: 'blur(24px)',
               WebkitBackdropFilter: 'blur(24px)',
-              borderRadius: 24,
+              borderRadius: 22,
               boxShadow: '0 2px 16px rgba(0,0,0,0.35)',
               overflow: 'hidden',
             }}
           >
-            {/* Top bar: destination + close */}
-            <div
-              className="flex items-center gap-3"
-              style={{ padding: '14px 18px' }}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="text-[15px] font-medium truncate" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
-                  {selectedPoi.name}
-                </div>
-                {mainRoad && (
-                  <div className="text-[12px] truncate mt-0.5" style={{ color: 'var(--mila-textSecondary, #999)' }}>
-                    via {mainRoad}
-                  </div>
-                )}
+            {/* Header */}
+            <div className="flex items-center justify-between" style={{ padding: '16px 18px 8px' }}>
+              <div className="text-[15px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
+                {selectedPoi.name}
               </div>
               <button
                 type="button"
@@ -218,72 +199,53 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
               </button>
             </div>
 
-            {/* Hero ETA + distance */}
-            <div className="text-center" style={{ padding: '4px 18px 14px' }}>
-              <div style={{
-                fontSize: 48, fontWeight: 700, lineHeight: 1,
-                color: 'var(--mila-text, #f5f5f7)',
-                letterSpacing: '-0.03em',
-              }}>
-                {etaMin}
-              </div>
-              <div style={{
-                fontSize: 13, fontWeight: 500,
-                color: 'var(--mila-textSecondary, #999)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                marginTop: 2,
-              }}>
-                min
-              </div>
-              <div style={{
-                fontSize: 16, fontWeight: 500,
-                color: 'var(--mila-textSecondary, #999)',
-                marginTop: 4,
-              }}>
-                {distKm} km
-              </div>
+            {/* Route options */}
+            <div style={{ padding: '8px 14px' }}>
+              {routes.map((r, i) => {
+                const min = Math.round(r.duration / 60);
+                const km = (r.distance / 1000).toFixed(1);
+                const road = (() => {
+                  const named = r.steps.filter((s) => s.name);
+                  return named.length > 0
+                    ? named.reduce((a, b) => (b.distance > a.distance ? b : a)).name
+                    : '';
+                })();
+                const isSel = i === routeIndex;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleSelectAlternative(i)}
+                    className="flex items-center gap-3 w-full px-4 py-3 mb-2 bg-transparent cursor-pointer rounded-xl"
+                    style={{
+                      background: 'var(--mila-bg, #1a1a1a)',
+                      border: isSel
+                        ? '2px solid var(--mila-accent, #818cf8)'
+                        : '2px solid transparent',
+                      transition: 'border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                    }}
+                  >
+                    <span className="text-[16px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
+                      {min} <span className="text-[11px] uppercase font-normal" style={{ color: 'var(--mila-textSecondary, #999)' }}>min</span>
+                    </span>
+                    <span className="text-[16px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
+                      {km} <span className="text-[11px] uppercase font-normal" style={{ color: 'var(--mila-textSecondary, #999)' }}>km</span>
+                    </span>
+                    {road && (
+                      <>
+                        <span className="text-[14px]" style={{ color: 'var(--mila-border, #555)' }}>·</span>
+                        <span className="text-[13px] truncate flex-1" style={{ color: 'var(--mila-textSecondary, #999)' }}>{road}</span>
+                      </>
+                    )}
+                    {isSel && (
+                      <span className="text-[11px] font-medium flex-shrink-0" style={{ color: 'var(--mila-accent, #818cf8)' }}>
+                        SELECTED
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-
-            {/* Alternative routes */}
-            {alternatives.length > 0 && (
-              <div style={{ padding: '0 14px 12px' }}>
-                {alternatives.map((alt, i) => {
-                  const altIndex = routes.indexOf(alt);
-                  const altMin = Math.round(alt.duration / 60);
-                  const altKm = (alt.distance / 1000).toFixed(1);
-                  const isSel = altIndex === routeIndex;
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => handleSelectAlternative(altIndex)}
-                      className="flex items-center gap-3 w-full px-3 py-2 border-0 bg-transparent cursor-pointer rounded-xl"
-                      style={{
-                        transition: 'background 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
-                        background: isSel ? 'color-mix(in srgb, var(--mila-accent, #818cf8) 12%, transparent)' : 'transparent',
-                      }}
-                    >
-                      <span className="text-[14px] font-medium" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
-                        {altMin} min
-                      </span>
-                      <span className="text-[14px] font-medium" style={{ color: 'var(--mila-textSecondary, #999)' }}>
-                        {altKm} km
-                      </span>
-                      <span className="flex-1" />
-                      <span className="text-[12px] truncate max-w-[120px]" style={{ color: 'var(--mila-textSecondary, #999)' }}>
-                        {(() => {
-                          const named = alt.steps.filter((s) => s.name);
-                          return named.length > 0
-                            ? named.reduce((a, b) => (b.distance > a.distance ? b : a)).name
-                            : '';
-                        })()}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
 
             {/* Go button */}
             <div style={{ padding: '0 14px 14px' }}>
