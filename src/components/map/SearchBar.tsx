@@ -263,7 +263,7 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
                       background: id === 'home' ? '#3b82f6' : '#6366f1',
                       borderRadius: 16,
                       boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                      animation: `chipReveal 0.35s cubic-bezier(0.16, 1, 0.3, 1) both ${i * 50}ms`,
+                      animation: `chipReveal 0.35s cubic-bezier(0.16, 1, 0.3, 1) ${i * 50}ms both`,
                       transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.06)'; }}
@@ -284,7 +284,7 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
                       background: chipColor(id),
                       borderRadius: 16,
                       boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                      animation: `chipReveal 0.35s cubic-bezier(0.16, 1, 0.3, 1) both ${(FAVORITES.length + i) * 50}ms`,
+                      animation: `chipReveal 0.35s cubic-bezier(0.16, 1, 0.3, 1) ${(FAVORITES.length + i) * 50}ms both`,
                       transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.06)'; }}
