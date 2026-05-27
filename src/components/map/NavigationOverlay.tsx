@@ -140,7 +140,7 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
 
   const etaMin = route ? Math.round(route.duration / 60) : 0;
   const distKm = route ? (route.distance / 1000).toFixed(1) : '0';
-  const mainRoad = route?.steps[0]?.name ?? '';
+  const mainRoad = route?.steps.find((s) => s.name)?.name ?? '';
 
   return (
     <div
