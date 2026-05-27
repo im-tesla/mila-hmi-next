@@ -284,7 +284,7 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
           exit={{ opacity: 0, x: -16 }}
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         >
-          <NavigationPanel route={selectedRoute} gpsSpeed={gpsSpeed} />
+          <NavigationPanel route={selectedRoute} />
         </motion.div>
       )}
       </AnimatePresence>
