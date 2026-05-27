@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import mapboxgl from 'mapbox-gl';
-import { ArrowRight, X, Circle } from 'lucide-react';
+import { ArrowRight, X } from 'lucide-react';
 import SearchBar from '@/components/map/SearchBar';
 import NavigationPanel from '@/components/map/NavigationPanel';
 import MapControls from '@/components/map/MapControls';
@@ -177,105 +177,115 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
         </div>
       )}
 
-      {/* Preview: Apple Maps-style destination card (bottom) */}
+      {/* Preview: automotive cockpit route card */}
       {isPreview && selectedPoi && selectedRoute && (
         <div
           className="absolute bottom-8 left-1/2 z-10"
-          style={{ transform: 'translateX(-50%)', pointerEvents: 'auto', width: 360 }}
+          style={{ transform: 'translateX(-50%)', pointerEvents: 'auto', width: 340 }}
         >
           <div
             style={{
               background: 'var(--mila-surface, #2a2a2a)',
               backdropFilter: 'blur(24px)',
               WebkitBackdropFilter: 'blur(24px)',
-              borderRadius: 20,
+              borderRadius: 24,
               boxShadow: '0 2px 16px rgba(0,0,0,0.35)',
               overflow: 'hidden',
             }}
           >
-            {/* Header: close + destination */}
-            <div style={{ padding: '16px 18px 12px' }}>
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-[17px] font-semibold truncate flex-1 min-w-0" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
+            {/* Top bar: destination + close */}
+            <div
+              className="flex items-center gap-3"
+              style={{ padding: '14px 18px' }}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="text-[15px] font-medium truncate" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
                   {selectedPoi.name}
                 </div>
-                <button
-                  type="button"
-                  onClick={handleCancelPreview}
-                  className="border-0 bg-transparent cursor-pointer p-1 flex-shrink-0 ml-2"
-                  style={{ color: 'var(--mila-textSecondary, #999)' }}
-                >
-                  <X size={20} strokeWidth={2} />
-                </button>
-              </div>
-              <div className="flex items-baseline gap-4">
-                <span>
-                  <span className="text-[20px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{etaMin}</span>
-                  <span className="text-[11px] uppercase tracking-wide ml-1" style={{ color: 'var(--mila-textSecondary, #999)' }}>min</span>
-                </span>
-                <span>
-                  <span className="text-[20px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{distKm}</span>
-                  <span className="text-[11px] uppercase tracking-wide ml-1" style={{ color: 'var(--mila-textSecondary, #999)' }}>km</span>
-                </span>
                 {mainRoad && (
-                  <>
-                    <span className="text-[16px]" style={{ color: 'var(--mila-border, #555)' }}>·</span>
-                    <span className="text-[12px] truncate" style={{ color: 'var(--mila-textSecondary, #999)' }}>
-                      via {mainRoad}
-                    </span>
-                  </>
+                  <div className="text-[12px] truncate mt-0.5" style={{ color: 'var(--mila-textSecondary, #999)' }}>
+                    via {mainRoad}
+                  </div>
                 )}
+              </div>
+              <button
+                type="button"
+                onClick={handleCancelPreview}
+                className="border-0 bg-transparent cursor-pointer p-1 flex-shrink-0"
+                style={{ color: 'var(--mila-textSecondary, #999)' }}
+              >
+                <X size={18} strokeWidth={2} />
+              </button>
+            </div>
+
+            {/* Hero ETA + distance */}
+            <div className="text-center" style={{ padding: '4px 18px 14px' }}>
+              <div style={{
+                fontSize: 48, fontWeight: 700, lineHeight: 1,
+                color: 'var(--mila-text, #f5f5f7)',
+                letterSpacing: '-0.03em',
+              }}>
+                {etaMin}
+              </div>
+              <div style={{
+                fontSize: 13, fontWeight: 500,
+                color: 'var(--mila-textSecondary, #999)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                marginTop: 2,
+              }}>
+                min
+              </div>
+              <div style={{
+                fontSize: 16, fontWeight: 500,
+                color: 'var(--mila-textSecondary, #999)',
+                marginTop: 4,
+              }}>
+                {distKm} km
               </div>
             </div>
 
             {/* Alternative routes */}
             {alternatives.length > 0 && (
-              <div style={{ padding: '0 18px 8px' }}>
-                <div style={{ borderTop: `1px solid var(--mila-border, #333)`, paddingTop: 8 }}>
-                  {alternatives.map((alt, i) => {
-                    const altIndex = routes.indexOf(alt);
-                    const altMin = Math.round(alt.duration / 60);
-                    const altKm = (alt.distance / 1000).toFixed(1);
-                    const altRoad = (() => {
-                      const named = alt.steps.filter((s) => s.name);
-                      if (named.length === 0) return '';
-                      return named.reduce((a, b) => (b.distance > a.distance ? b : a)).name;
-                    })();
-                    return (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => handleSelectAlternative(altIndex)}
-                        className="flex items-center gap-2 w-full py-2 border-0 bg-transparent cursor-pointer rounded-xl"
-                        style={{
-                          transition: 'background 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
-                        }}
-                      >
-                        <Circle
-                          size={8}
-                          fill={altIndex === routeIndex ? 'var(--mila-accent, #818cf8)' : 'transparent'}
-                          color={altIndex === routeIndex ? 'var(--mila-accent, #818cf8)' : 'var(--mila-textSecondary, #999)'}
-                          strokeWidth={2}
-                        />
-                        <span className="text-[15px] font-medium" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
-                          {altMin} <span className="text-[11px] uppercase" style={{ color: 'var(--mila-textSecondary, #999)' }}>min</span>
-                        </span>
-                        <span className="text-[15px] font-medium" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
-                          {altKm} <span className="text-[11px] uppercase" style={{ color: 'var(--mila-textSecondary, #999)' }}>km</span>
-                        </span>
-                        {altRoad && (
-                          <span className="text-[12px] truncate" style={{ color: 'var(--mila-textSecondary, #999)' }}>
-                            via {altRoad}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+              <div style={{ padding: '0 14px 12px' }}>
+                {alternatives.map((alt, i) => {
+                  const altIndex = routes.indexOf(alt);
+                  const altMin = Math.round(alt.duration / 60);
+                  const altKm = (alt.distance / 1000).toFixed(1);
+                  const isSel = altIndex === routeIndex;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => handleSelectAlternative(altIndex)}
+                      className="flex items-center gap-3 w-full px-3 py-2 border-0 bg-transparent cursor-pointer rounded-xl"
+                      style={{
+                        transition: 'background 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
+                        background: isSel ? 'color-mix(in srgb, var(--mila-accent, #818cf8) 12%, transparent)' : 'transparent',
+                      }}
+                    >
+                      <span className="text-[14px] font-medium" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
+                        {altMin} min
+                      </span>
+                      <span className="text-[14px] font-medium" style={{ color: 'var(--mila-textSecondary, #999)' }}>
+                        {altKm} km
+                      </span>
+                      <span className="flex-1" />
+                      <span className="text-[12px] truncate max-w-[120px]" style={{ color: 'var(--mila-textSecondary, #999)' }}>
+                        {(() => {
+                          const named = alt.steps.filter((s) => s.name);
+                          return named.length > 0
+                            ? named.reduce((a, b) => (b.distance > a.distance ? b : a)).name
+                            : '';
+                        })()}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
 
-            {/* Go button — full width, Apple Maps green style */}
+            {/* Go button */}
             <div style={{ padding: '0 14px 14px' }}>
               <button
                 type="button"
