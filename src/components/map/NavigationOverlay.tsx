@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import mapboxgl from 'mapbox-gl';
+import { ArrowRight, X } from 'lucide-react';
 import SearchBar from '@/components/map/SearchBar';
 import NavigationPanel from '@/components/map/NavigationPanel';
 import MapControls from '@/components/map/MapControls';
@@ -202,7 +203,7 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
                 className="border-0 bg-transparent cursor-pointer p-1"
                 style={{ color: 'var(--mila-textSecondary, #999)' }}
               >
-                <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 6L6 18M6 6l12 12"/></svg>
+                <X size={20} strokeWidth={2} />
               </button>
             </div>
           </div>
@@ -263,10 +264,8 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
               t.style.boxShadow = '0 4px 28px rgba(129,140,248,0.4), 0 1px 3px rgba(0,0,0,0.2)';
             }}
           >
-            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
             Go
+            <ArrowRight size={20} strokeWidth={2.5} />
           </button>
         </div>
       )}
