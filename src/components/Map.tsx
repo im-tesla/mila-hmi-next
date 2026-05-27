@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { getSetting, subscribeSetting } from '@/lib/settings';
+import NavigationOverlay from '@/components/map/NavigationOverlay';
 
 const USER_SOURCE = 'mila-user';
 const USER_LAYER = 'mila-user-dot';
@@ -34,6 +35,7 @@ export default function Map({ rightPadding = 0 }: { rightPadding?: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const paddingRef = useRef(0);
+  const [mapReady, setMapReady] = useState(false);
 
   // ─── Init / destroy ───────────────────────────────────────────
   useEffect(() => {
@@ -122,6 +124,7 @@ export default function Map({ rightPadding = 0 }: { rightPadding?: number }) {
       if (paddingRef.current > 0) {
         map.setPadding({ right: paddingRef.current });
       }
+      setMapReady(true);
       if (!('geolocation' in navigator)) return;
       geoWatchId = navigator.geolocation.watchPosition(
         (pos) => {
@@ -183,6 +186,7 @@ export default function Map({ rightPadding = 0 }: { rightPadding?: number }) {
   return (
     <div className="w-full h-full relative">
       <div ref={containerRef} className="w-full h-full" />
+      {mapReady && <NavigationOverlay map={mapRef.current!} rightPadding={rightPadding} />}
     </div>
   );
 }

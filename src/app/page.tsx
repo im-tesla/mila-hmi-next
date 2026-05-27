@@ -5,6 +5,7 @@ import MapClient from '@/components/MapClient';
 import SettingsPanel from '@/components/SettingsPanel';
 import Slider from '@/components/Slider';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { ToastProvider } from '@/components/Toast';
 import { useSetting, PANEL_WIDTHS } from '@/lib/settings';
 import { useCustomApps, getFaviconUrl, getFaviconFallback, normalizeUrl, resolveFaviconUrl, extractFaviconColor, addCustomApp, removeCustomApp } from '@/lib/customApps';
 import type { CustomApp } from '@/lib/customApps';
@@ -108,7 +109,9 @@ const HOLD_DISMISS_MS = 4000;
 export default function Home() {
   return (
     <ErrorBoundary>
-      <HomeInner />
+      <ToastProvider>
+        <HomeInner />
+      </ToastProvider>
     </ErrorBoundary>
   );
 }
@@ -232,10 +235,15 @@ function HomeInner() {
     if (switchTimer.current) { clearTimeout(switchTimer.current); switchTimer.current = null; }
     if (holdTimer.current) { clearTimeout(holdTimer.current); holdTimer.current = null; }
     setHoldService(null);
-    setVisibleContent(service);
+    setShowAppLibrary(false);
     setShowVolume(false);
+    if (fullscreen === service) {
+      setFullscreen(null);
+      return;
+    }
+    setVisibleContent(service);
     setFullscreen(service);
-  }, []);
+  }, [fullscreen]);
 
   // ─── Effects ──────────────────────────────────────────────────
 
