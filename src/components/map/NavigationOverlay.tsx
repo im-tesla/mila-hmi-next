@@ -194,15 +194,19 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
                   <X size={20} strokeWidth={2} />
                 </button>
               </div>
-              <div className="flex items-center gap-2 text-[14px]" style={{ color: 'var(--mila-textSecondary, #999)' }}>
-                <span>{etaMin} min</span>
-                <span style={{ color: 'var(--mila-border, #555)' }}>·</span>
-                <span>{distKm} km</span>
+              <div className="flex items-center gap-4">
+                <span>
+                  <span className="text-[20px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{etaMin}</span>
+                  <span className="text-[13px] font-medium ml-1" style={{ color: 'var(--mila-textSecondary, #999)' }}>min</span>
+                </span>
+                <span>
+                  <span className="text-[20px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{distKm}</span>
+                  <span className="text-[13px] font-medium ml-1" style={{ color: 'var(--mila-textSecondary, #999)' }}>km</span>
+                </span>
                 {mainRoad && (
-                  <>
-                    <span style={{ color: 'var(--mila-border, #555)' }}>·</span>
-                    <span className="truncate">{mainRoad}</span>
-                  </>
+                  <span className="text-[13px] truncate" style={{ color: 'var(--mila-textSecondary, #999)' }}>
+                    via {mainRoad}
+                  </span>
                 )}
               </div>
             </div>
