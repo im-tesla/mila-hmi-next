@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Fuel, UtensilsCrossed, ShoppingBag, X, MapPin } from 'lucide-react';
 import { fetchSuggestions, fetchPOIs, type SearchResult } from '@/lib/mapbox-geocoding';
 import { useToast } from '@/components/Toast';
+import { useSetting, THEME_COLORS, type Theme, type ThemeColors } from '@/lib/settings';
 
 const QUICK_CHIPS = [
   { id: 'gas', label: 'Gas', Icon: Fuel, query: 'gas station' },
@@ -36,6 +37,13 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
   const containerRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const { show: showToast } = useToast();
+
+  const [theme] = useSetting('theme');
+  const [customColors] = useSetting('customColors');
+  const colors: ThemeColors =
+    theme === 'Custom'
+      ? customColors
+      : THEME_COLORS[theme as Exclude<Theme, 'Custom'>] ?? THEME_COLORS.Dark;
 
   const debouncedQuery = useDebounce(query.trim(), 300);
 
@@ -127,23 +135,24 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
 
   const showDropdown = expanded;
   const hasQuickChips = !query.trim();
-  const textMuted = 'var(--mila-textSecondary, #999)';
+
+  const chipColor = (id: string) => (id === 'gas' ? '#ff9f0a' : id === 'food' ? '#ff6b35' : '#34c759');
 
   return (
     <div ref={containerRef} className="absolute top-5 left-1/2 z-20" style={{ transform: 'translateX(-50%)' }}>
       <div
         style={{
-          width: expanded ? 420 : 380,
+          width: expanded ? 460 : 400,
           borderRadius: 18,
           overflow: 'hidden',
-          background: 'var(--mila-surface, #2c2c2e)',
-          boxShadow: '0 2px 16px rgba(0,0,0,0.35), 0 0 0 0.5px var(--mila-border, rgba(255,255,255,0.06))',
+          background: colors.surface,
+          boxShadow: `0 2px 16px rgba(0,0,0,0.35), 0 0 0 0.5px ${colors.border}`,
           transition: 'box-shadow var(--anim-duration, 0.2s) cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
         {/* Input row */}
-        <div className="flex items-center gap-2.5 px-5 py-3.5">
-          <Search size={20} color={textMuted} />
+        <div className="flex items-center gap-3 px-5 py-4">
+          <Search size={22} color={colors.textSecondary} />
           {expanded ? (
             <input
               ref={inputRef}
@@ -151,14 +160,14 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search places..."
-              className="flex-1 bg-transparent border-0 outline-none text-[16px]"
-              style={{ color: 'var(--mila-text, #f5f5f7)' }}
+              className="flex-1 bg-transparent border-0 outline-none text-[17px]"
+              style={{ color: colors.text }}
               autoFocus
             />
           ) : (
             <span
-              className="flex-1 text-[16px] cursor-pointer"
-              style={{ color: textMuted }}
+              className="flex-1 text-[17px] cursor-pointer"
+              style={{ color: colors.textSecondary }}
               onClick={handleFocus}
             >
               Where to?
@@ -166,7 +175,7 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
           )}
           {expanded && (
             <button type="button" onClick={handleClose} className="border-0 bg-transparent cursor-pointer p-0.5">
-              <X size={18} color={textMuted} />
+              <X size={20} color={colors.textSecondary} />
             </button>
           )}
         </div>
@@ -174,24 +183,24 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
         {/* Quick chips */}
         {expanded && hasQuickChips && (
           <>
-            <div className="mx-5" style={{ borderTop: '1px solid var(--mila-border, rgba(255,255,255,0.06))' }} />
+            <div className="mx-5" style={{ borderTop: `1px solid ${colors.border}` }} />
             <div
               className="px-5 pt-3.5 pb-2"
               style={{
-                animation: expanded ? 'fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both' : undefined,
+                animation: 'fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both',
               }}
             >
-              <div className="flex gap-2.5">
+              <div className="flex gap-3">
                 {QUICK_CHIPS.map(({ id, label, Icon, query: chipQuery }) => (
                   <button
                     key={id}
                     type="button"
                     onClick={() => handleQuickChip(id, chipQuery)}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 border-0 cursor-pointer"
+                    className="flex-1 flex items-center justify-center gap-2.5 py-3.5 border-0 cursor-pointer"
                     style={{
-                      background: 'var(--mila-bg, #1c1c1e)',
-                      borderRadius: 14,
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+                      background: colors.bg,
+                      borderRadius: 16,
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
                       transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background var(--anim-duration, 0.2s) cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.04)'; }}
@@ -199,15 +208,15 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
                   >
                     <div
                       style={{
-                        width: 34, height: 34, borderRadius: 10,
-                        background: id === 'gas' ? '#ff9f0a' : id === 'food' ? '#ff6b35' : '#34c759',
+                        width: 42, height: 42, borderRadius: 12,
+                        background: chipColor(id),
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         flexShrink: 0,
                       }}
                     >
-                      <Icon size={18} color="#fff" strokeWidth={2.5} />
+                      <Icon size={22} color="#fff" strokeWidth={2.5} />
                     </div>
-                    <span className="text-[14px] font-medium" style={{ color: 'var(--mila-text, #f5f5f7)', lineHeight: 1 }}>
+                    <span className="text-[15px] font-medium" style={{ color: colors.text, lineHeight: 1 }}>
                       {label}
                     </span>
                   </button>
@@ -219,7 +228,7 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
 
           {/* Divider */}
           {showDropdown && (query.trim() || loading || quickResults.length > 0) && (
-            <div className="mx-5" style={{ borderTop: '1px solid var(--mila-border, #333)' }} />
+            <div className="mx-5" style={{ borderTop: `1px solid ${colors.border}` }} />
           )}
 
           {/* Autocomplete results */}
@@ -236,14 +245,14 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
                   onClick={() => handleSelect(r)}
                   className="w-full flex items-center gap-3 px-5 py-3.5 border-0 bg-transparent cursor-pointer text-left"
                   style={{
-                    borderBottom: i < results.length - 1 ? '1px solid var(--mila-border, #333)' : 'none',
+                    borderBottom: i < results.length - 1 ? `1px solid ${colors.border}` : 'none',
                   }}
                 >
-                  <MapPin size={18} color={textMuted} />
-                  <span className="text-[15px] flex-1 truncate" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
+                  <MapPin size={20} color={colors.textSecondary} />
+                  <span className="text-[16px] flex-1 truncate" style={{ color: colors.text }}>
                     {r.name}
                   </span>
-                  <span className="text-[13px] flex-shrink-0" style={{ color: textMuted }}>
+                  <span className="text-[13px] flex-shrink-0" style={{ color: colors.textSecondary }}>
                     {r.address.split(',').slice(-2).join(',').trim()}
                   </span>
                 </button>
@@ -265,13 +274,13 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
                   onClick={() => handleSelect(r)}
                   className="w-full flex items-center gap-3 px-5 py-3.5 border-0 bg-transparent cursor-pointer text-left"
                   style={{
-                    borderBottom: i < quickResults.length - 1 ? '1px solid var(--mila-border, #333)' : 'none',
+                    borderBottom: i < quickResults.length - 1 ? `1px solid ${colors.border}` : 'none',
                   }}
                 >
-                  <MapPin size={18} color={textMuted} />
+                  <MapPin size={20} color={colors.textSecondary} />
                   <div className="flex-1 min-w-0">
-                    <div className="text-[15px] truncate" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{r.name}</div>
-                    <div className="text-[13px] truncate" style={{ color: textMuted }}>{r.address}</div>
+                    <div className="text-[16px] truncate" style={{ color: colors.text }}>{r.name}</div>
+                    <div className="text-[13px] truncate" style={{ color: colors.textSecondary }}>{r.address}</div>
                   </div>
                 </button>
               ))}
@@ -284,8 +293,8 @@ export default function SearchBar({ getProximity, onSelectResult, onClear }: Sea
               <div
                 className="w-5 h-5 border-2 rounded-full animate-spin"
                 style={{
-                  borderColor: 'var(--mila-border, #333)',
-                  borderTopColor: 'var(--mila-accent, #818cf8)',
+                  borderColor: colors.border,
+                  borderTopColor: colors.accent,
                 }}
               />
             </div>
