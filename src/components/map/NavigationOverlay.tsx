@@ -237,11 +237,6 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
                         <span className="text-[13px] truncate flex-1" style={{ color: 'var(--mila-textSecondary, #999)' }}>{road}</span>
                       </>
                     )}
-                    {isSel && (
-                      <span className="text-[11px] font-medium flex-shrink-0" style={{ color: 'var(--mila-accent, #818cf8)' }}>
-                        SELECTED
-                      </span>
-                    )}
                   </button>
                 );
               })}
