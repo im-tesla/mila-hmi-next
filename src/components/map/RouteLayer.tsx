@@ -30,20 +30,19 @@ function ensurePingKeyframes() {
 function makeDestMarkerEl(): HTMLElement {
   ensurePingKeyframes();
   const wrapper = document.createElement('div');
-  wrapper.style.cssText =
-    'position:relative;width:18px;height:18px;display:flex;align-items:center;justify-content:center';
+  wrapper.style.cssText = 'position:relative;width:0;height:0';
 
   const pulse = document.createElement('div');
   pulse.style.cssText =
     'position:absolute;width:38px;height:38px;border-radius:50%;' +
-    'background:rgba(239,68,68,0.18);top:50%;left:50%;' +
+    'background:rgba(239,68,68,0.18);top:0;left:0;transform:translate(-50%,-50%);' +
     'animation:mila-user-ping 2.8s ease-out infinite;pointer-events:none';
 
   const dot = document.createElement('div');
   dot.style.cssText =
-    'width:16px;height:16px;border-radius:50%;background:#ef4444;' +
+    'position:absolute;width:16px;height:16px;border-radius:50%;background:#ef4444;' +
     'border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,0.3);' +
-    'position:relative;z-index:1';
+    'top:0;left:0;transform:translate(-50%,-50%);z-index:1';
 
   wrapper.appendChild(pulse);
   wrapper.appendChild(dot);
