@@ -25,12 +25,28 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
   const [gpsSpeed, setGpsSpeed] = useState<number | null>(null);
   const [navigating, setNavigating] = useState(false);
   const centerRef = useRef<[number, number]>(WARSAW);
+  const headingRef = useRef<number>(0);
   const { show: showToast } = useToast();
 
   const isRouting = navigating && route !== null;
   const isPreview = route !== null && !navigating;
 
-  // GPS heading tracking during navigation
+  // Always track heading so it's ready the moment Go is tapped
+  useEffect(() => {
+    if (!('geolocation' in navigator)) return;
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        if (pos.coords.heading !== null && pos.coords.heading !== undefined) {
+          headingRef.current = pos.coords.heading;
+        }
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10_000 },
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
+
+  // Update speed + map bearing continuously during navigation
   useEffect(() => {
     if (!navigating || !map) return;
     if ('geolocation' in navigator) {
@@ -40,6 +56,7 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
             setGpsSpeed(pos.coords.speed * 3.6);
           }
           if (pos.coords.heading !== null && pos.coords.heading !== undefined) {
+            headingRef.current = pos.coords.heading;
             map.easeTo({ bearing: pos.coords.heading, duration: 500 });
           }
         },
@@ -51,11 +68,12 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
   }, [navigating, map]);
 
   const getProximity = useCallback((): [number, number] => {
+    if (userPosRef.current) return userPosRef.current;
     if (!map) return centerRef.current;
     const c = map.getCenter();
     centerRef.current = [c.lng, c.lat];
     return centerRef.current;
-  }, [map]);
+  }, [map, userPosRef]);
 
   const handleSelectResult = useCallback(
     async (result: SearchResult) => {
@@ -86,29 +104,21 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
   const handleStartNavigation = useCallback(() => {
     setNavigating(true);
     if (!map) return;
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const center: [number, number] = [pos.coords.longitude, pos.coords.latitude];
-          const heading = pos.coords.heading ?? 0;
-          map.easeTo({
-            center,
-            zoom: 17,
-            bearing: heading,
-            pitch: 45,
-            duration: 1000,
-          });
-        },
-        () => {
-          if (route?.geometry.coordinates.length) {
-            const coords = route.geometry.coordinates as [number, number][];
-            map.easeTo({ center: coords[0], zoom: 15, duration: 1000 });
-          }
-        },
-        { enableHighAccuracy: true, timeout: 5000 },
-      );
-    }
-  }, [map, route]);
+    // userPosRef is tracked continuously by watchPosition — use it synchronously
+    // so the camera snaps immediately on tap, no async delay.
+    const center: [number, number] | undefined =
+      userPosRef.current ??
+      (route?.geometry.coordinates[0] as [number, number] | undefined);
+    if (!center) return;
+    map.easeTo({
+      center,
+      zoom: 19,
+      pitch: 45,
+      bearing: headingRef.current,
+      duration: 700,
+      easing: (t: number) => 1 - Math.pow(1 - t, 3),
+    });
+  }, [map, route, userPosRef]);
 
   const handleEndRoute = useCallback(() => {
     setRoute(null);
@@ -162,29 +172,29 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
               WebkitBackdropFilter: 'blur(24px)',
               border: '1px solid var(--mila-border, #333)',
               borderRadius: 22,
-              padding: '14px 22px',
+              padding: '16px 24px',
               display: 'flex',
               alignItems: 'center',
               gap: 16,
-              minWidth: 380,
+              minWidth: 400,
             }}
           >
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-medium truncate" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
+              <div className="text-[16px] font-medium truncate" style={{ color: 'var(--mila-text, #f5f5f7)' }}>
                 {selectedPoi.name}
               </div>
-              <div className="text-[12px] truncate mt-0.5" style={{ color: 'var(--mila-textSecondary, #999)' }}>
+              <div className="text-[13px] truncate mt-0.5" style={{ color: 'var(--mila-textSecondary, #999)' }}>
                 {selectedPoi.address}
               </div>
             </div>
             <div className="flex items-center gap-4 flex-shrink-0">
               <div className="text-center">
-                <div className="text-[15px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{etaMin} min</div>
-                <div className="text-[10px] uppercase" style={{ color: 'var(--mila-textSecondary, #999)' }}>ETA</div>
+                <div className="text-[17px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{etaMin} min</div>
+                <div className="text-[11px] uppercase" style={{ color: 'var(--mila-textSecondary, #999)' }}>ETA</div>
               </div>
               <div className="text-center">
-                <div className="text-[15px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{distKm} km</div>
-                <div className="text-[10px] uppercase" style={{ color: 'var(--mila-textSecondary, #999)' }}>Dist</div>
+                <div className="text-[17px] font-semibold" style={{ color: 'var(--mila-text, #f5f5f7)' }}>{distKm} km</div>
+                <div className="text-[11px] uppercase" style={{ color: 'var(--mila-textSecondary, #999)' }}>Dist</div>
               </div>
               <button
                 type="button"
@@ -192,13 +202,13 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
                 className="border-0 bg-transparent cursor-pointer p-1"
                 style={{ color: 'var(--mila-textSecondary, #999)' }}
               >
-                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 6L6 18M6 6l12 12"/></svg>
+                <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>
           </div>
           {mainRoad && (
             <div className="text-center mt-1.5">
-              <span className="text-[11px]" style={{ color: 'var(--mila-textSecondary, #999)' }}>
+              <span className="text-[12px]" style={{ color: 'var(--mila-textSecondary, #999)' }}>
                 via {mainRoad.replace(/^Drive\s+/, '').replace(/^Head\s+/, '')}
               </span>
             </div>
@@ -213,7 +223,7 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
 
       {/* Map controls */}
       <div style={{ pointerEvents: 'auto' }}>
-        <MapControls map={map} userPosRef={userPosRef} />
+        <MapControls map={map} userPosRef={userPosRef} navigating={navigating} />
       </div>
 
       {/* Route layer */}
@@ -222,7 +232,7 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
       {/* Loading */}
       {routeLoading && (
         <div className="absolute bottom-8 left-0 right-0 text-center z-10" style={{ pointerEvents: 'auto' }}>
-          <span className="text-sm" style={{ color: 'var(--mila-textSecondary, #999)' }}>
+          <span className="text-base" style={{ color: 'var(--mila-textSecondary, #999)' }}>
             Finding route…
           </span>
         </div>
@@ -234,16 +244,28 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
           <button
             type="button"
             onClick={handleStartNavigation}
-            className="px-8 py-3.5 rounded-2xl text-[15px] font-semibold border-0 cursor-pointer"
+            className="flex items-center gap-2 px-10 py-4 text-[17px] font-semibold border-0 cursor-pointer"
             style={{
-              background: 'var(--mila-accent, #818cf8)',
+              background: 'linear-gradient(135deg, var(--mila-accent, #818cf8), color-mix(in srgb, var(--mila-accent, #818cf8) 70%, #6366f1))',
               color: '#fff',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
-              transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+              borderRadius: 50,
+              boxShadow: '0 4px 28px rgba(129,140,248,0.4), 0 1px 3px rgba(0,0,0,0.2)',
+              transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
+            onMouseEnter={(e) => {
+              const t = e.currentTarget as HTMLElement;
+              t.style.transform = 'scale(1.04)';
+              t.style.boxShadow = '0 6px 36px rgba(129,140,248,0.55), 0 2px 6px rgba(0,0,0,0.25)';
+            }}
+            onMouseLeave={(e) => {
+              const t = e.currentTarget as HTMLElement;
+              t.style.transform = 'scale(1)';
+              t.style.boxShadow = '0 4px 28px rgba(129,140,248,0.4), 0 1px 3px rgba(0,0,0,0.2)';
+            }}
           >
+            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
             Go
           </button>
         </div>
@@ -255,7 +277,7 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
           <button
             type="button"
             onClick={handleEndRoute}
-            className="px-4 py-3 rounded-2xl text-[14px] font-medium border-0 cursor-pointer"
+            className="px-5 py-3.5 rounded-2xl text-[15px] font-medium border-0 cursor-pointer"
             style={{
               background: 'var(--mila-surface, #2a2a2a)',
               backdropFilter: 'blur(24px)',

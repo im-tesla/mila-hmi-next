@@ -40,23 +40,27 @@ export default function NavigationPanel({ route, gpsSpeed }: NavigationPanelProp
           <span style={{ color: textPrimary, fontSize: 28, fontWeight: 600, lineHeight: 1 }}>
             {gpsSpeed !== null ? Math.round(gpsSpeed) : '--'}
           </span>
-          <span style={{ color: textMuted, fontSize: 13 }}> km/h</span>
+          <span style={{ color: textMuted, fontSize: 14 }}> km/h</span>
         </div>
-        <div className="ml-auto">
-          <div
-            className="flex items-center justify-center flex-shrink-0"
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: '50%',
-              background: '#fff',
-              border: '4px solid #FF3B30',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-            }}
-          >
-            <span style={{ color: '#1a1a1a', fontSize: 22, fontWeight: 700, lineHeight: 1 }}>--</span>
+        {currentStep?.maxspeedKmh != null && (
+          <div className="ml-auto">
+            <div
+              className="flex items-center justify-center flex-shrink-0"
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: '50%',
+                background: '#fff',
+                border: '4px solid #FF3B30',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+              }}
+            >
+              <span style={{ color: '#1a1a1a', fontSize: 20, fontWeight: 700, lineHeight: 1 }}>
+                {currentStep.maxspeedKmh}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Lane guidance — road surface style (road stays dark like asphalt) */}
@@ -97,7 +101,7 @@ export default function NavigationPanel({ route, gpsSpeed }: NavigationPanelProp
                 key={i}
                 style={{
                   color: lane.active ? textPrimary : textMuted,
-                  fontSize: 10,
+                  fontSize: 11,
                   fontWeight: lane.active ? 500 : 400,
                   textAlign: 'center',
                   flex: 1,
@@ -119,10 +123,10 @@ export default function NavigationPanel({ route, gpsSpeed }: NavigationPanelProp
           <MapPin size={18} stroke="rgba(74,158,255,0.8)" strokeWidth={2} />
         </div>
         <div className="min-w-0">
-          <div style={{ color: textPrimary, fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ color: textPrimary, fontSize: 15, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {instruction}
           </div>
-          <div style={{ color: textMuted, fontSize: 12 }}>
+          <div style={{ color: textMuted, fontSize: 13 }}>
             {distanceNow >= 1000
               ? `${(distanceNow / 1000).toFixed(1)} km`
               : `${Math.round(distanceNow)} m`}
@@ -157,10 +161,10 @@ export default function NavigationPanel({ route, gpsSpeed }: NavigationPanelProp
                       size={14}
                     />
                   </div>
-                  <span style={{ color: isCurrent ? textPrimary : textMuted, fontSize: 13, flex: 1 }}>
+                  <span style={{ color: isCurrent ? textPrimary : textMuted, fontSize: 14, flex: 1 }}>
                     {step.instruction}
                   </span>
-                  <span style={{ color: textMuted, fontSize: 11 }}>{dist}</span>
+                  <span style={{ color: textMuted, fontSize: 12 }}>{dist}</span>
                 </div>
               );
             })}
