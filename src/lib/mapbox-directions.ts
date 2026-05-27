@@ -25,7 +25,7 @@ export async function fetchRoute(
 ): Promise<RouteData> {
   const coords = `${origin[0]},${origin[1]};${destination[0]},${destination[1]}`;
   const url = new URL(
-    `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${coords}`,
+    `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}`,
   );
   url.searchParams.set('access_token', TOKEN);
   url.searchParams.set('geometries', 'geojson');
