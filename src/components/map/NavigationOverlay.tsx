@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import mapboxgl from 'mapbox-gl';
 import { ArrowRight, X } from 'lucide-react';
 import SearchBar from '@/components/map/SearchBar';
@@ -170,9 +170,14 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
       )}
 
       {/* Preview: route selection card */}
+      <AnimatePresence>
       {isPreview && selectedPoi && selectedRoute && (
-        <div
+        <motion.div
           className="absolute bottom-8 left-1/2 z-10"
+          initial={{ opacity: 0, y: 24, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 24, scale: 0.96 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           style={{ transform: 'translateX(-50%)', pointerEvents: 'auto', width: 380 }}
         >
           <div
@@ -263,13 +268,23 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
               </motion.button>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Navigation panel — during active routing */}
+      <AnimatePresence>
       {isRouting && selectedRoute && (
-        <NavigationPanel route={selectedRoute} gpsSpeed={gpsSpeed} />
+        <motion.div
+          initial={{ opacity: 0, x: -16 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -16 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <NavigationPanel route={selectedRoute} gpsSpeed={gpsSpeed} />
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Map controls */}
       <div style={{ pointerEvents: 'auto' }}>
@@ -280,17 +295,34 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
       <RouteLayer map={map} routes={routes} routeIndex={routeIndex} pois={pois} onPoiTap={handleSelectResult} onSelectAlternative={handleSelectAlternative} />
 
       {/* Loading */}
+      <AnimatePresence>
       {routeLoading && (
-        <div className="absolute bottom-8 left-0 right-0 text-center z-10" style={{ pointerEvents: 'auto' }}>
+        <motion.div
+          className="absolute bottom-8 left-0 right-0 text-center z-10"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          style={{ pointerEvents: 'auto' }}
+        >
           <span className="text-base" style={{ color: 'var(--mila-textSecondary, #999)' }}>
             Finding route…
           </span>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* End button — during routing */}
+      <AnimatePresence>
       {isRouting && (
-        <div className="absolute top-5 right-4 z-10" style={{ pointerEvents: 'auto' }}>
+        <motion.div
+          className="absolute top-5 right-4 z-10"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          style={{ pointerEvents: 'auto' }}
+        >
           <motion.button
             type="button"
             onClick={handleEndRoute}
@@ -307,8 +339,9 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
           >
             End
           </motion.button>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
