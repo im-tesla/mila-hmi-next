@@ -9,6 +9,7 @@ import { ToastProvider } from '@/components/Toast';
 import { useSetting, PANEL_WIDTHS } from '@/lib/settings';
 import { useCustomApps, getFaviconUrl, getFaviconFallback, normalizeUrl, resolveFaviconUrl, extractFaviconColor, addCustomApp, removeCustomApp } from '@/lib/customApps';
 import type { CustomApp } from '@/lib/customApps';
+import { Cog, VolumeX, Volume1, Volume2, LayoutGrid, X, Plus } from 'lucide-react';
 
 // ─── Service definitions ────────────────────────────────────────
 
@@ -56,49 +57,17 @@ const NetflixIcon = ({ size = 28 }: { size?: number }) => {
   return <img src="/netflix.svg" width={s} height={s} alt="Netflix" style={{ verticalAlign: 'middle' }} />;
 };
 
-const GearIcon = ({ size = 28 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
-  </svg>
-);
+const GearIcon = ({ size = 28 }: { size?: number }) => <Cog size={size} />;
 
 const VolumeIcon = ({ size = 24, level = 100 }: { size?: number; level?: number }) => {
-  if (level === 0) {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
-      </svg>
-    );
-  }
-  if (level < 50) {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" />
-      </svg>
-    );
-  }
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
-    </svg>
-  );
+  if (level === 0) return <VolumeX size={size} />;
+  if (level < 50) return <Volume1 size={size} />;
+  return <Volume2 size={size} />;
 };
 
 const iconMap = { spotify: SpotifyIcon, youtube: YouTubeIcon, netflix: NetflixIcon } as const;
 
-const GridIcon = ({ size = 28 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-    <circle cx="5" cy="5" r="2.5" />
-    <circle cx="12" cy="5" r="2.5" />
-    <circle cx="19" cy="5" r="2.5" />
-    <circle cx="5" cy="12" r="2.5" />
-    <circle cx="12" cy="12" r="2.5" />
-    <circle cx="19" cy="12" r="2.5" />
-    <circle cx="5" cy="19" r="2.5" />
-    <circle cx="12" cy="19" r="2.5" />
-    <circle cx="19" cy="19" r="2.5" />
-  </svg>
-);
+const GridIcon = ({ size = 28 }: { size?: number }) => <LayoutGrid size={size} />;
 
 // ─── Page ────────────────────────────────────────────────────────
 
@@ -679,9 +648,7 @@ function HomeInner() {
                 className="border-0 bg-transparent cursor-pointer p-1 rounded-lg"
                 style={{ color: 'var(--mila-textSecondary, #999)' }}
               >
-                <svg width={24} height={24} viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M18.3 5.71a.996.996 0 00-1.41 0L12 10.59 7.11 5.7A.996.996 0 105.7 7.11L10.59 12 5.7 16.89a.996.996 0 101.41 1.41L12 13.41l4.89 4.89a.996.996 0 101.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z" />
-                </svg>
+                <X size={24} />
               </button>
             </div>
 
@@ -810,9 +777,7 @@ function HomeInner() {
                 className="flex flex-col items-center gap-1.5 border-2 border-dashed bg-transparent cursor-pointer p-3 rounded-xl touch-none w-20"
                 style={{ color: 'var(--mila-textSecondary, #999)', borderColor: 'var(--mila-border, #e5e5e5)' }}
               >
-                <svg width={44} height={44} viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.5 }}>
-                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-                </svg>
+                <Plus size={44} style={{ opacity: 0.5 }} />
                 <span className="text-xs font-medium" style={{ color: 'var(--mila-textSecondary, #999)' }}>Add App</span>
               </button>
             </div>
