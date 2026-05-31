@@ -1,266 +1,195 @@
 'use client';
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import type { RouteData } from '@/lib/mapbox-directions';
-import { LaneArrow, getLaneLabel } from './turnArrows';
-import { ChevronUp } from 'lucide-react';
+import { LaneArrow } from './turnArrows';
+import SpeedLimitBadge from './SpeedLimitBadge';
+import {
+  formatDistance,
+  formatArrival,
+  formatRemaining,
+  modifierToIndications,
+} from '@/lib/navFormat';
 
 interface NavigationPanelProps {
   route: RouteData;
+  gpsSpeed: number | null;
+  onEnd: () => void;
 }
 
-function formatTime(ms: number): string {
-  const d = new Date(Date.now() + ms * 1000);
-  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-}
+// ~400px at Normal UI scale; rem so the panel scales with the uiScale setting.
+const PANEL_WIDTH = '25rem';
 
-export default function NavigationPanel({ route }: NavigationPanelProps) {
-  const [expanded, setExpanded] = useState(false);
+export default function NavigationPanel({ route, gpsSpeed, onEnd }: NavigationPanelProps) {
+  const step = route.steps[0];
+  const next = route.steps[1];
+  const upcoming = route.steps.slice(1, 5);
 
-  const currentStep = route.steps[0];
-  const nextLanes = currentStep?.lanes?.filter((l) => l.valid) ?? [];
+  const dist = formatDistance(step?.distance ?? 0);
+  const instruction = step?.instruction || 'Starting route…';
+  const lanes = step?.lanes?.filter((l) => l.valid) ?? [];
+  const arrival = formatArrival(route.duration);
+  const { min, km } = formatRemaining(route.duration, route.distance);
 
-  const instruction = currentStep?.instruction ?? '';
-  const distanceNow = currentStep?.distance ?? 0;
-  const nextInstruction = route.steps.length > 1 ? route.steps[1].instruction : '';
-  const allSteps = route.steps;
+  const text = 'var(--mila-text, #f5f5f7)';
+  const muted = 'var(--mila-textSecondary, #999)';
+  const border = 'var(--mila-border, #333)';
+  const surface = 'var(--mila-surface, #2a2a2a)';
+  const accent = 'var(--mila-accent, #818cf8)';
+  const bg = 'var(--mila-bg, #1a1a1a)';
 
-  const textPrimary = 'var(--mila-text, #f5f5f7)';
-  const textMuted = 'var(--mila-textSecondary, #999)';
-
-  const cardBg = {
-    background: 'var(--mila-surface, #2a2a2a)',
-    backdropFilter: 'blur(24px)',
-    WebkitBackdropFilter: 'blur(24px)',
-  };
-
-  const arrivalTime = route.duration > 0 ? formatTime(route.duration) : '--:--';
-  const remainingMin = route.duration > 0 ? Math.round(route.duration / 60) : '—';
-  const remainingKm = route.distance > 0 ? (route.distance / 1000).toFixed(1) : '—';
+  const thenText = next
+    ? `then ${next.instruction.charAt(0).toLowerCase()}${next.instruction.slice(1)}`
+    : 'Continue on current road';
 
   return (
-    <>
-      {/* ─── Primary Instruction Block (top-left) ─── */}
-      <motion.div
-        className="absolute top-5 left-4 z-10 flex flex-col"
-        initial={{ opacity: 0, x: -16 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -16 }}
-        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        style={{ maxWidth: 280, pointerEvents: 'auto' }}
-      >
-        {/* Lane guidance */}
+    <motion.aside
+      className="absolute top-0 bottom-0 left-0 z-10"
+      initial={{ opacity: 0, x: -16 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -16 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      style={{
+        width: PANEL_WIDTH,
+        background: surface,
+        color: text,
+        pointerEvents: 'auto',
+        overflow: 'visible',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 11,
+        padding: '14px 13px',
+        boxSizing: 'border-box',
+        fontFeatureSettings: "'tnum' 1",
+      }}
+    >
+      {/* Header: maneuver tile + hero distance */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
         <div
           style={{
-            ...cardBg,
-            borderRadius: 16,
-            padding: '12px 14px',
-            marginBottom: 8,
-          }}
-        >
-          <div className="flex" style={{ gap: 0, background: '#1e1e1e', borderRadius: 10, overflow: 'hidden', minHeight: 64 }}>
-            {nextLanes.length > 0 ? nextLanes.map((lane, i) => {
-              const isActive = lane.active;
-              const arrowColor = isActive ? '#fff' : 'rgba(255,255,255,0.2)';
-              return (
-                <div key={i} className="flex">
-                  {i > 0 && (
-                    <div style={{
-                      width: 1,
-                      background: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.12) 0, rgba(255,255,255,0.12) 6px, transparent 6px, transparent 12px)',
-                    }} />
-                  )}
-                  <div
-                    className="flex items-center justify-center"
-                    style={{
-                      width: 48, height: 64,
-                      background: isActive ? 'rgba(74,158,255,0.15)' : 'transparent',
-                      position: 'relative',
-                    }}
-                  >
-                    <LaneArrow indications={lane.indications} color={arrowColor} size={22} />
-                  </div>
-                </div>
-              );
-            }) : (
-              <div className="flex items-center justify-center w-full" style={{ color: textMuted, fontSize: 12 }}>
-                Lane guidance unavailable
-              </div>
-            )}
-          </div>
-          <div className="flex justify-between mt-1.5">
-            {nextLanes.length > 0 ? nextLanes.map((lane, i) => (
-              <span
-                key={i}
-                style={{
-                  color: lane.active ? textPrimary : textMuted,
-                  fontSize: 10,
-                  fontWeight: lane.active ? 500 : 400,
-                  textAlign: 'center',
-                  flex: 1,
-                }}
-              >
-                {getLaneLabel(lane.indications)}
-              </span>
-            )) : (
-              <span style={{ color: textMuted, fontSize: 10, textAlign: 'center', flex: 1 }}>—</span>
-            )}
-          </div>
-        </div>
-
-        {/* Instruction card */}
-        <div
-          style={{ ...cardBg, borderRadius: 16, padding: '16px 18px' }}
-        >
-          {/* Distance — hero metric */}
-          <div style={{ color: textPrimary, fontSize: 36, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.02em' }}>
-            {distanceNow > 0
-              ? (distanceNow >= 1000
-                ? `${(distanceNow / 1000).toFixed(1)} km`
-                : `${Math.round(distanceNow)} m`)
-              : '—'}
-          </div>
-
-          {/* Current instruction */}
-          <div style={{
-            color: instruction ? textPrimary : textMuted, fontSize: 16, fontWeight: 500,
-            marginTop: 6,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>
-            {instruction || 'Starting route…'}
-          </div>
-
-          {/* Next instruction preview */}
-          <div style={{ color: textMuted, fontSize: 13, marginTop: 4 }}>
-            {nextInstruction
-              ? `Then ${nextInstruction.charAt(0).toLowerCase() + nextInstruction.slice(1)}`
-              : 'Continue on current road'}
-          </div>
-        </div>
-
-        {/* Speed limit — EU circle */}
-        <div style={{ marginTop: 8, alignSelf: 'flex-start' }}>
-          <div
-            className="flex items-center justify-center"
-            style={{
-              width: 56, height: 56, borderRadius: '50%',
-              background: '#fff',
-              border: currentStep?.maxspeedKmh != null ? '5px solid #FF3B30' : '5px solid var(--mila-border, #333)',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-            }}
-          >
-            <span style={{ color: '#1a1a1a', fontSize: 22, fontWeight: 700, lineHeight: 1 }}>
-              {currentStep?.maxspeedKmh != null ? currentStep.maxspeedKmh : '—'}
-            </span>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* ─── Trip Progress Capsule (bottom-left) ─── */}
-      <motion.div
-        className="absolute bottom-8 left-4 z-10"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 16 }}
-        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
-        style={{ pointerEvents: 'auto' }}
-      >
-        <div
-          style={{
-            ...cardBg,
-            borderRadius: 22,
-            padding: '12px 20px',
+            background: accent,
+            color: '#fff',
+            width: 46,
+            height: 46,
+            borderRadius: 12,
             display: 'flex',
             alignItems: 'center',
-            gap: 24,
+            justifyContent: 'center',
+            flexShrink: 0,
           }}
         >
-          {/* Arrival time */}
-          <div className="text-center">
-            <div style={{ color: textPrimary, fontSize: 18, fontWeight: 600 }}>{arrivalTime}</div>
-            <div style={{ color: textMuted, fontSize: 11 }}>arrival</div>
-          </div>
-
-          {/* Duration */}
-          <div className="text-center">
-            <div style={{ color: textPrimary, fontSize: 18, fontWeight: 600 }}>{remainingMin}</div>
-            <div style={{ color: textMuted, fontSize: 11 }}>min</div>
-          </div>
-
-          {/* Distance */}
-          <div className="text-center">
-            <div style={{ color: textPrimary, fontSize: 18, fontWeight: 600 }}>{remainingKm}</div>
-            <div style={{ color: textMuted, fontSize: 11 }}>km</div>
-          </div>
-
-          {/* Expand button — switches back to route selection */}
-          <button
-            type="button"
-            onClick={() => setExpanded(!expanded)}
-            className="flex items-center justify-center border-0 cursor-pointer"
-            style={{
-              width: 36, height: 36, borderRadius: '50%',
-              background: 'var(--mila-bg, #1a1a1a)',
-              color: textMuted,
-              transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-            }}
-          >
-            <ChevronUp size={18} strokeWidth={2} />
-          </button>
+          <LaneArrow indications={modifierToIndications(step?.maneuverModifier ?? null)} color="#fff" size={26} />
         </div>
+        <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1, whiteSpace: 'nowrap' }}>
+          <span>{dist.value}</span>
+          <span style={{ fontSize: 17, fontWeight: 600, marginLeft: 3, color: muted }}>{dist.unit}</span>
+        </div>
+      </div>
 
-        {/* Expanded: turn-by-turn list */}
-        <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              ...cardBg,
-              borderRadius: 16,
-              maxHeight: 256,
-              overflowY: 'auto',
-              marginTop: 8,
-              padding: '12px 16px',
-            }}
-          >
-            <div className="flex flex-col gap-2">
-              {allSteps.map((step, i) => {
-                const dist = step.distance >= 1000
-                  ? `${(step.distance / 1000).toFixed(1)} km`
-                  : `${Math.round(step.distance)} m`;
-                const isCurrent = i === 0;
-                return (
-                  <div key={i} className="flex items-center gap-3" style={{ opacity: isCurrent ? 1 : 0.4 }}>
-                    <div
-                      className="flex items-center justify-center flex-shrink-0"
-                      style={{
-                        width: 26, height: 26, borderRadius: 8,
-                        background: isCurrent ? 'rgba(74,158,255,0.2)' : 'color-mix(in srgb, var(--mila-textSecondary, #999) 10%, transparent)',
-                      }}
-                    >
-                      <LaneArrow
-                        indications={step.lanes?.[0]?.indications ?? ['straight']}
-                        color={isCurrent ? textPrimary : textMuted}
-                        size={13}
-                      />
-                    </div>
-                    <span style={{ color: isCurrent ? textPrimary : textMuted, fontSize: 13, flex: 1 }}>
-                      {step.instruction}
-                    </span>
-                    <span style={{ color: textMuted, fontSize: 11 }}>{dist}</span>
-                  </div>
-                );
-              })}
+      {/* Street (own full-width line) */}
+      <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.2 }}>{instruction}</div>
+
+      {/* Then-preview + divider */}
+      <div style={{ fontSize: 12, fontWeight: 500, color: muted, paddingBottom: 10, borderBottom: `1px solid ${border}` }}>
+        {thenText}
+      </div>
+
+      {/* Lane guidance (only when present) */}
+      {lanes.length > 0 && (
+        <div style={{ display: 'flex', gap: 3 }}>
+          {lanes.map((lane, i) => (
+            <div
+              key={i}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '5px 0',
+                borderRadius: 6,
+                background: lane.active ? `color-mix(in srgb, ${accent} 22%, transparent)` : bg,
+              }}
+            >
+              <LaneArrow indications={lane.indications} color={lane.active ? text : muted} size={18} />
             </div>
-          </motion.div>
-        )}
-        </AnimatePresence>
-      </motion.div>
-    </>
+          ))}
+        </div>
+      )}
+
+      {/* Upcoming steps */}
+      {upcoming.length > 0 && (
+        <>
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: muted }}>
+            Upcoming
+          </div>
+          <div style={{ overflowY: 'auto', minHeight: 0 }}>
+            {upcoming.map((s, i) => {
+              const d = formatDistance(s.distance);
+              return (
+                <div
+                  key={i}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '9px 0',
+                    borderBottom: i < upcoming.length - 1 ? `1px solid ${border}` : 'none',
+                    fontSize: 13,
+                    fontWeight: 500,
+                  }}
+                >
+                  <span style={{ width: 20, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+                    <LaneArrow indications={modifierToIndications(s.maneuverModifier)} color={muted} size={18} />
+                  </span>
+                  <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {s.name || s.instruction}
+                  </span>
+                  <span style={{ fontSize: 12, color: muted, whiteSpace: 'nowrap' }}>
+                    {d.value} {d.unit}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Footer: ETA + End */}
+      <div
+        style={{
+          marginTop: 'auto',
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          paddingTop: 11,
+          borderTop: `1px solid ${border}`,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.01em' }}>{arrival}</div>
+          <div style={{ fontSize: 11, fontWeight: 500, color: muted }}>
+            {min} min · {km} km
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onEnd}
+          className="border-0 cursor-pointer"
+          style={{
+            background: 'rgba(255,59,48,0.16)',
+            color: '#FF3B30',
+            fontSize: 13,
+            fontWeight: 700,
+            borderRadius: 10,
+            padding: '9px 16px',
+          }}
+        >
+          End
+        </button>
+      </div>
+
+      {/* Floating speed sign, just outside the panel's right edge */}
+      <SpeedLimitBadge speedKmh={gpsSpeed} limitKmh={step?.maxspeedKmh ?? null} />
+    </motion.aside>
   );
 }
