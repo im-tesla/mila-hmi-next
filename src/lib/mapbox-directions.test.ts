@@ -57,6 +57,7 @@ describe('mapbox-directions', () => {
                     {
                       maneuver: {
                         instruction: 'Turn right onto Aleje Jerozolimskie',
+                        modifier: 'right',
                       },
                       distance: 1200.8,
                       intersections: [
@@ -119,7 +120,7 @@ describe('mapbox-directions', () => {
       name: '',
       distance: 1200.8,
       maxspeedKmh: null,
-      maneuverModifier: null,
+      maneuverModifier: 'right',
       lanes: [
         { indications: ['straight'], valid: true, active: false },
         { indications: ['straight'], valid: true, active: true },
