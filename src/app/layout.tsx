@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import SettingsBootstrap from "./SettingsBootstrap";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], display: "swap" });
+const inter = Inter({ subsets: ["latin", "latin-ext"], display: "optional" });
 
 export const metadata: Metadata = {
   title: "MILA HMI",
