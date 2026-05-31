@@ -21,6 +21,7 @@ describe('SpeedLimitBadge', () => {
     render(<SpeedLimitBadge speedKmh={42} limitKmh={null} />);
     expect(screen.getByText('42')).toBeInTheDocument();
     expect(screen.queryByText(/MAX/)).toBeNull();
+    expect(screen.getByTestId('speed-badge').getAttribute('data-over')).toBe('false');
   });
 
   it('renders nothing when neither speed nor limit is available', () => {

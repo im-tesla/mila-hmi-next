@@ -12,6 +12,7 @@ export default function SpeedLimitBadge({ speedKmh, limitKmh }: SpeedLimitBadgeP
   if (!hasSpeed && limitKmh == null) return null;
 
   const over = isOverLimit(speedKmh, limitKmh);
+  // grey ring when no speed limit is known; EU-style red ring otherwise
   const ring = limitKmh == null ? '#888888' : '#FF3B30';
   const numColor = over ? '#FF3B30' : '#111111';
 
