@@ -11,6 +11,7 @@ export interface StepInfo {
   name: string;
   distance: number;
   maxspeedKmh: number | null;
+  maneuverModifier: string | null;
   lanes: LaneInfo[];
 }
 
@@ -47,6 +48,7 @@ function parseRoute(route: any): RouteData {
       name: step?.name ?? '',
       distance: step?.distance ?? 0,
       maxspeedKmh,
+      maneuverModifier: step?.maneuver?.modifier ?? null,
       lanes: ((step?.intersections?.[0]?.lanes ?? []) as any[]).map((lane: any) => ({
         indications: lane?.indications ?? [],
         valid: lane?.valid ?? false,

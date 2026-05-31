@@ -104,7 +104,10 @@ describe('mapbox-directions', () => {
 
     expect(result.steps[0]).toEqual({
       instruction: 'Head east on Marszałkowska',
+      name: '',
       distance: 450.2,
+      maxspeedKmh: null,
+      maneuverModifier: null,
       lanes: [
         { indications: ['left'], valid: true, active: false },
         { indications: ['straight', 'right'], valid: true, active: true },
@@ -113,7 +116,10 @@ describe('mapbox-directions', () => {
 
     expect(result.steps[1]).toEqual({
       instruction: 'Turn right onto Aleje Jerozolimskie',
+      name: '',
       distance: 1200.8,
+      maxspeedKmh: null,
+      maneuverModifier: null,
       lanes: [
         { indications: ['straight'], valid: true, active: false },
         { indications: ['straight'], valid: true, active: true },
