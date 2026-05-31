@@ -5,7 +5,7 @@ export function formatDistance(meters: number): { value: string; unit: 'm' | 'km
 }
 
 export function formatArrival(durationSec: number, now: number = Date.now()): string {
-  if (!(durationSec > 0)) return '--:--';
+  if (!Number.isFinite(durationSec) || durationSec <= 0) return '--:--';
   const d = new Date(now + durationSec * 1000);
   return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
@@ -14,8 +14,8 @@ export function formatRemaining(
   durationSec: number,
   distanceM: number,
 ): { min: string; km: string } {
-  const min = durationSec > 0 ? String(Math.round(durationSec / 60)) : '—';
-  const km = distanceM > 0 ? (distanceM / 1000).toFixed(1) : '—';
+  const min = Number.isFinite(durationSec) && durationSec > 0 ? String(Math.round(durationSec / 60)) : '—';
+  const km = Number.isFinite(distanceM) && distanceM > 0 ? (distanceM / 1000).toFixed(1) : '—';
   return { min, km };
 }
 

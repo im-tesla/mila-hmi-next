@@ -27,8 +27,14 @@ describe('formatArrival', () => {
   it('returns placeholder for non-positive duration', () => {
     expect(formatArrival(0)).toBe('--:--');
   });
-  it('returns a clock-like string for a positive duration', () => {
-    expect(formatArrival(600, 0)).toMatch(/\d/);
+  it('returns the formatted clock time for a positive duration', () => {
+    expect(formatArrival(600, 0)).toBe(
+      new Date(600_000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+    );
+  });
+  it('returns placeholder for negative or non-finite duration', () => {
+    expect(formatArrival(-1)).toBe('--:--');
+    expect(formatArrival(Number.POSITIVE_INFINITY, 0)).toBe('--:--');
   });
 });
 
@@ -38,6 +44,9 @@ describe('formatRemaining', () => {
   });
   it('uses dashes when empty', () => {
     expect(formatRemaining(0, 0)).toEqual({ min: '—', km: '—' });
+  });
+  it('uses dashes for non-finite inputs', () => {
+    expect(formatRemaining(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY)).toEqual({ min: '—', km: '—' });
   });
 });
 
