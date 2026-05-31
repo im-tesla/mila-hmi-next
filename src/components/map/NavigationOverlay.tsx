@@ -279,14 +279,7 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
       {/* Navigation panel — during active routing */}
       <AnimatePresence>
       {isRouting && selectedRoute && (
-        <motion.div
-          initial={{ opacity: 0, x: -16 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -16 }}
-          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <NavigationPanel route={selectedRoute} />
-        </motion.div>
+        <NavigationPanel route={selectedRoute} gpsSpeed={gpsSpeed} onEnd={handleEndRoute} />
       )}
       </AnimatePresence>
 
@@ -316,32 +309,6 @@ export default function NavigationOverlay({ map, rightPadding = 0, userPosRef }:
       )}
       </AnimatePresence>
 
-      {/* End button — during routing */}
-      <AnimatePresence>
-      {isRouting && (
-        <motion.button
-          type="button"
-          onClick={handleEndRoute}
-          className="absolute top-5 right-4 z-10 px-5 py-3.5 rounded-2xl text-[15px] font-medium border-0 cursor-pointer"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.97 }}
-          style={{
-              background: 'var(--mila-surface, #2a2a2a)',
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-              color: '#FF453A',
-              border: '1px solid var(--mila-border, #333)',
-              pointerEvents: 'auto',
-            }}
-          >
-            End
-          </motion.button>
-      )}
-      </AnimatePresence>
     </div>
   );
 }
