@@ -38,9 +38,15 @@ export default function NavigationPanel({ route, gpsSpeed, onEnd }: NavigationPa
   const accent = 'var(--mila-accent, #818cf8)';
   const bg = 'var(--mila-bg, #1a1a1a)';
 
-  const thenText = next?.instruction
-    ? `then ${next.instruction.charAt(0).toLowerCase()}${next.instruction.slice(1)}`
-    : 'Continue on current road';
+  let thenText: string;
+  if (next?.name) {
+    const nextDist = formatDistance(next.distance);
+    thenText = `then ${next.name} · ${nextDist.value} ${nextDist.unit}`;
+  } else if (next?.instruction) {
+    thenText = `then ${next.instruction.charAt(0).toLowerCase()}${next.instruction.slice(1)}`;
+  } else {
+    thenText = 'Continue on current road';
+  }
 
   return (
     <motion.aside

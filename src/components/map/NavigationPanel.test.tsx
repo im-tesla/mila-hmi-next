@@ -31,7 +31,7 @@ describe('NavigationPanel', () => {
   it('shows the current instruction and the then-preview', () => {
     render(<NavigationPanel route={makeRoute()} gpsSpeed={48} onEnd={() => {}} />);
     expect(screen.getByText('Turn left onto Main Street')).toBeInTheDocument();
-    expect(screen.getByText(/then turn right onto Oak Ave/i)).toBeInTheDocument();
+    expect(screen.getByText(/then Oak Ave · 1\.6 km/)).toBeInTheDocument();
   });
 
   it('lists upcoming steps after the next one, without duplicating it', () => {
