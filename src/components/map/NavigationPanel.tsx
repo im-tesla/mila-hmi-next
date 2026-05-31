@@ -23,7 +23,7 @@ const PANEL_WIDTH = '25rem';
 export default function NavigationPanel({ route, gpsSpeed, onEnd }: NavigationPanelProps) {
   const step = route.steps[0];
   const next = route.steps[1];
-  const upcoming = route.steps.slice(1, 5);
+  const upcoming = route.steps.slice(2, 6);
 
   const dist = formatDistance(step?.distance ?? 0);
   const instruction = step?.instruction || 'Starting route…';
@@ -38,7 +38,7 @@ export default function NavigationPanel({ route, gpsSpeed, onEnd }: NavigationPa
   const accent = 'var(--mila-accent, #818cf8)';
   const bg = 'var(--mila-bg, #1a1a1a)';
 
-  const thenText = next
+  const thenText = next?.instruction
     ? `then ${next.instruction.charAt(0).toLowerCase()}${next.instruction.slice(1)}`
     : 'Continue on current road';
 
@@ -122,7 +122,7 @@ export default function NavigationPanel({ route, gpsSpeed, onEnd }: NavigationPa
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: muted }}>
             Upcoming
           </div>
-          <div style={{ overflowY: 'auto', minHeight: 0 }}>
+          <div style={{ flex: '1 1 auto', overflowY: 'auto', minHeight: 0 }}>
             {upcoming.map((s, i) => {
               const d = formatDistance(s.distance);
               return (
